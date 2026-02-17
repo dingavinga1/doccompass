@@ -1,0 +1,28 @@
+[project]
+name = "documentation-mcp-backend"
+version = "0.1.0"
+description = "Backend infrastructure for Documentation MCP Gateway"
+requires-python = ">=3.13"
+dependencies = [
+  "celery[redis]>=5.5.3",
+  "fastapi>=0.121.0",
+  "psycopg[binary]>=3.2.13",
+  "pydantic-settings>=2.11.0",
+  "redis>=7.0.1",
+  "sqlmodel>=0.0.27",
+  "uvicorn[standard]>=0.38.0",
+]
+
+[dependency-groups]
+dev = [
+  "httpx>=0.28.1",
+  "pytest>=8.4.2",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
