@@ -11,7 +11,7 @@ class Settings(BaseSettings):
 
     redis_url: str = Field(default="redis://redis:6379/0", alias="REDIS_URL")
     postgres_connection_string: str = Field(
-        default="postgresql://user:password@db:5432/docmcp",
+        default="postgresql+psycopg://user:password@db:5432/docmcp",
         alias="POSTGRES_CONNECTION_STRING",
     )
     mcp_server_token: str = Field(default="super-secret-token", alias="MCP_SERVER_TOKEN")

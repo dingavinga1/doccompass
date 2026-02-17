@@ -1,4 +1,4 @@
-from .celery_app import celery_app
+from app.celery_app import celery_app
 
 
 @celery_app.task(name="app.tasks.ping")

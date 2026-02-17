@@ -8,7 +8,7 @@ dependencies = [
   "fastapi>=0.121.0",
   "psycopg[binary]>=3.2.13",
   "pydantic-settings>=2.11.0",
-  "redis>=7.0.1",
+  "redis>=5.2.1,<6.5",
   "sqlmodel>=0.0.27",
   "uvicorn[standard]>=0.38.0",
 ]
@@ -22,6 +22,10 @@ dev = [
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.uv]
+package = false
 
 [build-system]
 requires = ["hatchling>=1.27.0"]
