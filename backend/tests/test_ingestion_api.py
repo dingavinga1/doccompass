@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
@@ -15,11 +16,15 @@ def override_get_session():
         yield session
 
 
-app.dependency_overrides[get_session] = override_get_session
-client = TestClient(app)
+@pytest.fixture
+def client():
+    app.dependency_overrides[get_session] = override_get_session
+    with TestClient(app) as test_client:
+        yield test_client
+    app.dependency_overrides.pop(get_session, None)
 
 
-def test_ingestion_api_start_status_stop(monkeypatch):
+def test_ingestion_api_start_status_stop(monkeypatch, client: TestClient):
     monkeypatch.setattr("app.services.ingestion.celery_app.send_task", lambda *args, **kwargs: None)
 
     start_response = client.post(

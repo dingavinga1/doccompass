@@ -2,6 +2,15 @@
 
 ---
 
+## Current Status (2026-02-18)
+
+- Completed: ingestion pipeline (crawl/parse/persist/checksum delta + stop/cancel), Phase 4 documentation-serving endpoints, and test coverage for those APIs.
+- Active search mode in production: `keyword_fallback` (`/documentation/{id}/search`).
+- Deferred: provider-backed embeddings/vector retrieval (tracked in `docs/dev/phases/README-EMBEDDING-INDEXING.md`).
+- Canonical execution sequencing is maintained in `docs/dev/phases/README.md`.
+
+---
+
 ## Infra Stack
 
 - **Backend:** FastAPI + FastMCP
@@ -141,7 +150,7 @@ CREATE TABLE raw_page (
 
 ---
 
-## Phase 3 — Embeddings and Vector Indexing
+## Phase 3 — Embeddings and Vector Indexing (Deferred to Phase-Docs Phase 8)
 
 ### 3.1 Goal
 
@@ -191,10 +200,16 @@ POST /documentation/ingestion/stop
 GET /documentation           -- list_documentations
 GET /documentation/:id       -- list_documentation_sections (supports start_path, pagination)
 DELETE /documentation/:id
-GET /documentation/:id/:section_path  -- get_section_content
+GET /documentation/:id/sections/{path}  -- get_section_content
 GET /documentation/:id/tree  -- full nested tree
-GET /documentation/:id/search  -- semantic search by embedding
+GET /documentation/:id/search  -- keyword fallback in Phase 4, semantic in embedding phase (phase-docs Phase 8)
 ```
+
+### 4.3 Implementation Notes (Current)
+
+- `GET /documentation/:id/tree` returns the full nested tree and can be very large for heavily crawled docs sets.
+- Missing documentation or section resources return `404` with `{"detail": ...}`.
+- Authentication is not enforced in this phase (hook points only).
 
 ---
 

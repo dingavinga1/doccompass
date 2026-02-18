@@ -9,8 +9,11 @@ MODULES = [
     "app.celery_app",
     "app.tasks.ping",
     "app.api",
+    "app.api.documentation",
+    "app.api.dtos.documentation",
     "app.models",
     "app.services",
+    "app.services.documentation",
     "app.mcp",
 ]
 
