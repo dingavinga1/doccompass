@@ -15,6 +15,7 @@ class Settings(BaseSettings):
         alias="POSTGRES_CONNECTION_STRING",
     )
     mcp_server_token: str = Field(default="super-secret-token", alias="MCP_SERVER_TOKEN")
+    store_raw_pages: bool = Field(default=False, alias="STORE_RAW_PAGES")
 
 
 settings = Settings()

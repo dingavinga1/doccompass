@@ -20,6 +20,13 @@
 REDIS_URL=redis://redis:6379/0
 POSTGRES_CONNECTION_STRING=postgresql://user:password@db:5432/docmcp
 MCP_SERVER_TOKEN=super-secret-token
+EMBEDDING_MODEL=bedrock:amazon.titan-embed-text-v2:0
+EMBEDDING_DIMENSION=1024
+EMBEDDING_BATCH_SIZE=64
+EMBEDDING_MAX_RETRIES=3
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
 POSTGRES_USER=user
 POSTGRES_PASSWORD=password
 POSTGRES_DB=docmcp
@@ -124,8 +131,8 @@ CREATE TABLE raw_page (
    - Save each page to `raw_page`
    - Status `PARSING` → Parse into hierarchical sections
    - Compute `checksum`, generate `DocumentationSection`
-   - Status `EMBEDDING` → Generate vector embeddings (Pydantic AI)
-   - Status `INDEXING` → Index into Postgres vector column
+   - Status `EMBEDDING` → Reserved stub in this phase
+   - Status `INDEXING` → Reserved stub in this phase
    - Status `COMPLETED` or `FAILED`
 
 3. Delta updates: Only update sections whose checksum changed
@@ -134,9 +141,43 @@ CREATE TABLE raw_page (
 
 ---
 
-## Phase 3 — API Endpoints
+## Phase 3 — Embeddings and Vector Indexing
 
-### 3.1 Ingestion Endpoints
+### 3.1 Goal
+
+Implement production embedding generation and PGVector indexing so semantic search can run on real vectors instead of stubs.
+
+### 3.2 Scope
+
+- Provider-included embedding model string from `.env` (e.g. `bedrock:amazon.titan-embed-text-v2:0`)
+- Embedder initialized from config string using Pydantic AI `Embedder(...)`
+- Batched embedding generation for changed/new sections only
+- Retry/backoff and failure classification for provider errors
+- Vector upsert into `documentation_section.embedding`
+- Re-embedding strategy on model change (full rebuild trigger)
+- Job progress updates for `EMBEDDING` and `INDEXING` stages
+
+### 3.3 Pipeline
+
+1. Read sections changed by checksum in current ingestion run.
+2. Chunk changed sections into `EMBEDDING_BATCH_SIZE`.
+3. Call provider and capture vectors.
+4. Persist vectors to `documentation_section.embedding`.
+5. Mark `EMBEDDING` and then `INDEXING` status with progress updates.
+6. On transient provider failure, retry up to `EMBEDDING_MAX_RETRIES`.
+7. On terminal failure, set job `FAILED` with error details.
+
+### 3.4 Validation
+
+- Similar sections produce closer distances than unrelated sections.
+- Re-ingestion without content changes does not regenerate embeddings.
+- Model-change workflow can force re-embedding of existing sections.
+
+---
+
+## Phase 4 — API Endpoints
+
+### 4.1 Ingestion Endpoints
 
 ```http
 POST /documentation/ingestion
@@ -144,7 +185,7 @@ GET /documentation/ingestion/:id
 POST /documentation/ingestion/stop
 ```
 
-### 3.2 MCP Tool Endpoints
+### 4.2 MCP Tool Endpoints
 
 ```http
 GET /documentation           -- list_documentations
@@ -157,7 +198,7 @@ GET /documentation/:id/search  -- semantic search by embedding
 
 ---
 
-## Phase 4 — Dashboard Features
+## Phase 5 — Dashboard Features
 
 - Listing of ingestions with status & last_synced
 - Adjustable frequency (`cron_schedule`)
@@ -168,7 +209,7 @@ GET /documentation/:id/search  -- semantic search by embedding
 
 ---
 
-## Phase 5 — Security & Reliability
+## Phase 6 — Security & Reliability
 
 - `MCP_SERVER_TOKEN` header for all MCP endpoints
 - Rate-limit ingestion (3 jobs at a time- configurable)
@@ -177,7 +218,7 @@ GET /documentation/:id/search  -- semantic search by embedding
 
 ---
 
-## Phase 6 — Dockerization
+## Phase 7 — Dockerization
 
 ### Backend Dockerfile
 
@@ -263,28 +304,29 @@ volumes:
 
 ---
 
-## Phase 7 — Acceptance Criteria
+## Phase 8 — Acceptance Criteria
 
 1. Ingest **FastAPI docs**
 2. Verify:
    - Tree structure matches navigation
    - Sections accessible via MCP tools
    - Semantic search queries return correct sections
+   - Embeddings exist for indexed sections and search is vector-backed
 
 3. Re-ingestion updates only changed sections
-4. Stop ingestion works mid-job
+4. Unchanged sections skip embedding regeneration
+5. Stop ingestion works mid-job
 
 ---
 
-## Phase 8 — Step-by-Step Implementation
+## Phase 9 — Step-by-Step Implementation
 
 1. Setup Docker + uv + env
 2. Implement database schema & migrations
-3. Implement ingestion endpoints & Celery tasks
-4. Implement parsing & hierarchical section logic
-5. Implement embeddings via Pydantic AI + PGVector
-6. Implement MCP tool endpoints: tree, search, get section
-7. Build frontend dashboard
-8. Add security & logging
-9. Manual testing on FastAPI docs
-10. Optimize delta updates & embedding updates
+3. Implement ingestion endpoints & Celery tasks (crawl + parse + checksum delta)
+4. Implement embeddings + vector indexing stage
+5. Implement MCP tool endpoints: tree, search, get section
+6. Build frontend dashboard
+7. Add security & logging
+8. Manual testing on FastAPI docs
+9. Optimize delta updates + embedding throughput
