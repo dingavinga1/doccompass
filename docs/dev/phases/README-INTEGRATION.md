@@ -17,7 +17,7 @@ Integrate infrastructure, ingestion, API, and MCP layers into a cohesive system 
 
 ## Development Plan
 1. Wire backend API, Celery worker, Redis, and Postgres using shared settings module.
-2. Ensure migrations run automatically or through a documented startup step.
+2. Ensure migrations run automatically through a one-shot Compose service and documented startup/runbook steps.
 3. Add retry policies for crawl and embedding transient failures.
 4. Add structured logs with correlation IDs (ingestion job id).
 5. Add integration test harness using dockerized dependencies.
@@ -32,11 +32,22 @@ Integrate infrastructure, ingestion, API, and MCP layers into a cohesive system 
 4. Config consistency tests across API and worker processes.
 
 ## Manual Testing Plan
-1. Execute full flow: start ingestion -> wait for completion -> query via API and MCP.
-2. Validate acceptance criteria using FastAPI docs as canonical source.
-3. Interrupt ingestion mid-run and verify clean stop behavior.
-4. Re-run ingestion and validate checksum-based delta updates.
-5. Restart full stack and confirm resumed functionality with persisted data.
+1. Verify migration gating: `docker compose up --build` runs `migrations` first and blocks backend/worker if migration fails.
+2. Execute full flow: start ingestion -> wait for completion -> query via API and MCP.
+3. Validate acceptance criteria using FastAPI docs as canonical source.
+4. Interrupt ingestion mid-run and verify clean stop behavior.
+5. Re-run ingestion and validate checksum-based delta updates.
+6. Restart full stack and confirm resumed functionality with persisted data.
+
+## Migration Failure Triage & Safe Re-run
+1. Inspect migration logs:
+   - `docker compose logs migrations`
+2. Validate DB service health:
+   - `docker compose ps`
+3. After fixing root cause, re-run migrations:
+   - `docker compose run --rm migrations`
+4. Resume full stack:
+   - `docker compose up --build`
 
 ## Exit Criteria
 - Full workflow is stable across multiple runs.

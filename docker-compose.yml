@@ -1,4 +1,14 @@
 services:
+  migrations:
+    build: ./backend
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    command: uv run alembic upgrade head
+    restart: "no"
+
   backend:
     build: ./backend
     env_file:
@@ -10,6 +20,8 @@ services:
         condition: service_healthy
       db:
         condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
     volumes:
       - ./backend/app:/app/app
     healthcheck:
@@ -27,6 +39,8 @@ services:
         condition: service_healthy
       db:
         condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
     volumes:
       - ./backend/app:/app/app
     command: uv run celery -A app.celery_app:celery_app worker --loglevel=info

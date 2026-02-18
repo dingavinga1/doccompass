@@ -11,9 +11,21 @@
    - `cp .env.example .env`
 2. Start stack:
    - `docker compose up --build`
+   - This runs the one-shot `migrations` service first, then starts `backend` and `celery_worker` after migrations succeed.
 3. Verify services:
    - Backend health: `http://localhost:8000/health`
+   - Backend readiness: `http://localhost:8000/ready`
    - Frontend placeholder: `http://localhost:3000`
+
+### Migration Operations
+- Run migrations only:
+  - `docker compose up migrations`
+- Re-run migrations as an idempotent one-shot job:
+  - `docker compose run --rm migrations`
+- Inspect migration logs:
+  - `docker compose logs migrations`
+- Make target:
+  - `make migrate`
 
 ### Backend Unit Tests
 - `cd backend && uv run pytest`
