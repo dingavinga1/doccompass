@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime, timezone
 
@@ -125,8 +126,12 @@ def _persist_raw_pages(session: Session, documentation_id: uuid.UUID, pages: lis
         )
     session.commit()
 
+logger = logging.getLogger(__name__)
 
-def _apply_sections_delta(session: Session, documentation_id: uuid.UUID, parsed_sections: list[ParsedSection]) -> None:
+
+def _apply_sections_delta(
+    session: Session, documentation_id: uuid.UUID, parsed_sections: list[ParsedSection]
+) -> list[uuid.UUID]:
     existing_sections = session.exec(
         select(DocumentationSection).where(DocumentationSection.documentation_id == documentation_id)
     ).all()
@@ -134,6 +139,7 @@ def _apply_sections_delta(session: Session, documentation_id: uuid.UUID, parsed_
 
     incoming_paths = {section.path for section in parsed_sections}
     path_to_model: dict[str, DocumentationSection] = {}
+    changed_ids: list[uuid.UUID] = []
 
     for parsed in parsed_sections:
         existing = existing_by_path.get(parsed.path)
@@ -156,6 +162,7 @@ def _apply_sections_delta(session: Session, documentation_id: uuid.UUID, parsed_
         session.add(existing)
         session.flush()
         path_to_model[parsed.path] = existing
+        changed_ids.append(existing.id)
 
     stale_sections = [section for section in existing_sections if section.path not in incoming_paths]
     for stale in stale_sections:
@@ -174,6 +181,7 @@ def _apply_sections_delta(session: Session, documentation_id: uuid.UUID, parsed_
         target.parent_id = parent.id if parent else None
 
     session.commit()
+    return changed_ids
 
 
 async def run_ingestion_pipeline(session: Session, job_id: uuid.UUID) -> None:
@@ -205,19 +213,68 @@ async def run_ingestion_pipeline(session: Session, job_id: uuid.UUID) -> None:
 
         _set_job_state(session, job, IngestionStatus.PARSING, progress_percent=55, pages_processed=len(pages))
         parsed_sections = parse_sections(pages)
-        _apply_sections_delta(session, documentation.id, parsed_sections)
+        changed_ids = _apply_sections_delta(session, documentation.id, parsed_sections)
 
         if _stop_if_requested(session, job):
             return
 
-        _set_job_state(session, job, IngestionStatus.EMBEDDING, progress_percent=80)
-        # Embedding intentionally stubbed for this phase.
+        # ── EMBEDDING ───────────────────────────────────────────────
+        _set_job_state(session, job, IngestionStatus.EMBEDDING, progress_percent=60)
+
+        if changed_ids:
+            from app.services.embedding import embed_sections
+
+            changed_sections = session.exec(
+                select(DocumentationSection).where(DocumentationSection.id.in_(changed_ids))
+            ).all()
+
+            texts = [
+                f"{s.title or ''}\n{s.summary or ''}\n{s.content or ''}"
+                for s in changed_sections
+            ]
+
+            vectors = await embed_sections(
+                texts, doc_id=documentation.id, job_id=job.id
+            )
+
+            for section_model, vector in zip(changed_sections, vectors):
+                section_model.embedding = vector
+                session.add(section_model)
+            session.commit()
+
+            logger.info(
+                "Embedded %d changed sections for doc %s",
+                len(changed_ids),
+                documentation.id,
+            )
+        else:
+            logger.info(
+                "No changed sections to embed for doc %s",
+                documentation.id,
+            )
+
+        _set_job_state(session, job, IngestionStatus.EMBEDDING, progress_percent=85)
 
         if _stop_if_requested(session, job):
             return
 
-        _set_job_state(session, job, IngestionStatus.INDEXING, progress_percent=95)
-        # Indexing intentionally stubbed for this phase.
+        # ── INDEXING ────────────────────────────────────────────────
+        _set_job_state(session, job, IngestionStatus.INDEXING, progress_percent=90)
+
+        # Validate dimensions for changed sections
+        if changed_ids:
+            for section_model in changed_sections:
+                if section_model.embedding is not None:
+                    vec_len = len(section_model.embedding)
+                    if vec_len != settings.embedding_dimension:
+                        raise ValueError(
+                            f"Section {section_model.id} has embedding dim {vec_len}, "
+                            f"expected {settings.embedding_dimension}"
+                        )
+
+        # Record embedding metadata on the documentation record
+        documentation.embedding_model_name = settings.embedding_model
+        documentation.embedding_dimension_size = settings.embedding_dimension
 
         documentation.last_synced = _utcnow()
         documentation.updated_at = _utcnow()

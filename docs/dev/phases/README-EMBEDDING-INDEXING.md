@@ -72,3 +72,11 @@ Replace the embedding/indexing stubs with a production-ready vector pipeline tha
 - Embedding/indexing service integration in ingestion task
 - Config and operational runbook for embedding settings
 - Unit tests and manual verification checklist
+
+## Notes on AWS Credentials
+- If using AWS SSO (`aws sso login`), the `~/.aws` directory must be mounted **read-write** into the container so the AWS SDK can refresh and write to the SSO cache.
+- Example `docker-compose.yml`:
+  ```yaml
+  volumes:
+    - ~/.aws:/root/.aws  # No :ro flag
+  ```

@@ -21,9 +21,11 @@ from app.services.documentation import (
     delete_documentation,
     get_documentation_tree,
     get_section_content,
+    has_embeddings,
     list_documentations,
     list_sections,
     search_sections_keyword,
+    search_sections_semantic,
 )
 
 router = APIRouter(prefix="/documentation", tags=["documentation"])
@@ -121,7 +123,7 @@ def get_documentation_tree_endpoint(
     responses=ERROR_RESPONSES,
     operation_id="search_documentation",
 )
-def search_documentation_endpoint(
+async def search_documentation_endpoint(
     documentation_id: uuid.UUID,
     q: str = Query(min_length=2),
     limit: int = Query(default=20, ge=1, le=100),
@@ -132,10 +134,30 @@ def search_documentation_endpoint(
     if documentation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Documentation not found")
 
-    rows, meta = search_sections_keyword(
-        session=session, documentation_id=documentation_id, query=q, limit=limit, offset=offset
-    )
+    use_semantic = has_embeddings(session, documentation_id)
+
+    if use_semantic:
+        try:
+            rows, meta = await search_sections_semantic(
+                session=session, documentation_id=documentation_id, query=q, limit=limit, offset=offset
+            )
+            search_mode = "semantic"
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception("Semantic search failed, falling back to keyword")
+            # Fallback
+            rows, meta = search_sections_keyword(
+                session=session, documentation_id=documentation_id, query=q, limit=limit, offset=offset
+            )
+            search_mode = "keyword_fallback"
+    else:
+        rows, meta = search_sections_keyword(
+            session=session, documentation_id=documentation_id, query=q, limit=limit, offset=offset
+        )
+        search_mode = "keyword_fallback"
+
     return SearchResponse(
+        search_mode=search_mode,
         items=build_search_items(rows, q),
         meta=PaginationMeta(total=meta.total, limit=meta.limit, offset=meta.offset),
     )

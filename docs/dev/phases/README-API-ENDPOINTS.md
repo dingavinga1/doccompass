@@ -56,7 +56,7 @@ Expose stable REST endpoints for ingestion control and documentation/section ret
 
 ## Current Status (2026-02-18)
 - Implemented and live: all ingestion + documentation Phase 4 endpoints.
-- Search mode: `keyword_fallback` only.
+- Search mode: `semantic` (with `keyword_fallback`).
 - Auth: hook points remain out of enforcement for this phase.
 - Verified manually against ingested FastAPI docs via host `curl`:
   - `/documentation`

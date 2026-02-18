@@ -86,6 +86,6 @@ class SearchItem(BaseModel):
 
 
 class SearchResponse(BaseModel):
-    search_mode: Literal["keyword_fallback"] = "keyword_fallback"
+    search_mode: Literal["semantic", "keyword_fallback"] = "keyword_fallback"
     items: list[SearchItem]
     meta: PaginationMeta

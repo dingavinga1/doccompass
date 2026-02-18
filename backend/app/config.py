@@ -19,5 +19,13 @@ class Settings(BaseSettings):
     mcp_rate_limit_max_requests: int = Field(default=120, alias="MCP_RATE_LIMIT_MAX_REQUESTS")
     store_raw_pages: bool = Field(default=False, alias="STORE_RAW_PAGES")
 
+    # Embedding settings (Phase 8)
+    embedding_model: str = Field(default="bedrock:amazon.titan-embed-text-v2:0", alias="EMBEDDING_MODEL")
+    embedding_dimension: int = Field(default=1024, alias="EMBEDDING_DIMENSION")
+    embedding_batch_size: int = Field(default=64, alias="EMBEDDING_BATCH_SIZE")
+    embedding_max_retries: int = Field(default=3, alias="EMBEDDING_MAX_RETRIES")
+    aws_region: str = Field(default="us-east-1", alias="AWS_REGION")
+    openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
+
 
 settings = Settings()

@@ -8,9 +8,10 @@
   - ingestion pipeline (crawl/parse/persist/checksum delta + stop/cancel),
   - Phase 4 documentation-serving endpoints,
   - Phase 5 MCP wrapper (`/mcp`) with read-only tool allowlist + bearer auth,
-  - backend test coverage for API + MCP wrapper contracts.
-- Active search mode in production: `keyword_fallback` (`/documentation/{id}/search`).
-- Deferred: provider-backed embeddings/vector retrieval (tracked in `docs/dev/phases/README-EMBEDDING-INDEXING.md`).
+  - backend test coverage for API + MCP wrapper contracts,
+  - provider-backed embeddings/vector retrieval (Phase 8).
+- Active search mode in production: `semantic` (with `keyword_fallback`) (`/documentation/{id}/search`).
+- Deferred: None (Phase 8 complete).
 - Canonical execution sequencing is maintained in `docs/dev/phases/README.md`.
 
 ---

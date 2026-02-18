@@ -69,7 +69,7 @@ Wrap core documentation capabilities as MCP-compatible tools with secure token-g
     - `search_documentation`
 - Guardrails:
   - No ingestion endpoints or delete endpoint are exposed as MCP tools.
-  - Search mode remains `keyword_fallback` until embedding phase.
+  - Search mode is `semantic` (with `keyword_fallback`).
 - Tests:
   - `backend/tests/test_mcp_wrapper.py` covers tool discovery allowlist, auth, contracts, and not-found behavior.
 

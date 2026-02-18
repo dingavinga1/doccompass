@@ -24,8 +24,11 @@ services:
         condition: service_completed_successfully
     volumes:
       - ./backend/app:/app/app
+      - ~/.aws:/root/.aws
+    environment:
+      - AWS_REGION=${AWS_REGION:-us-east-1}
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()" ]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -43,6 +46,9 @@ services:
         condition: service_completed_successfully
     volumes:
       - ./backend/app:/app/app
+      - ~/.aws:/root/.aws
+    environment:
+      - AWS_REGION=${AWS_REGION:-us-east-1}
     command: uv run celery -A app.celery_app:celery_app worker --loglevel=info
 
   redis:
@@ -50,7 +56,7 @@ services:
     ports:
       - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -67,7 +73,7 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 5s
       timeout: 5s
       retries: 20

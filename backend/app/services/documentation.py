@@ -4,7 +4,7 @@ import uuid
 from dataclasses import dataclass
 from urllib.parse import unquote
 
-from sqlalchemy import case, desc, func, or_
+from sqlalchemy import case, desc, func, or_, text, type_coerce, Float
 from sqlmodel import Session, delete, select
 
 from app.models import Documentation, DocumentationSection, IngestionJob, RawPage
@@ -201,6 +201,64 @@ def search_sections_keyword(
     results: list[tuple[DocumentationSection, float]] = []
     for section, score in rows:
         results.append((section, float(score)))
+
+    return results, PaginationResult(total=total, limit=limit, offset=offset)
+
+
+def has_embeddings(session: Session, documentation_id: uuid.UUID) -> bool:
+    """Check whether any section in this documentation set has a stored embedding."""
+    count = session.exec(
+        select(func.count())
+        .select_from(DocumentationSection)
+        .where(
+            DocumentationSection.documentation_id == documentation_id,
+            DocumentationSection.embedding.is_not(None),
+        )
+    ).one()
+    return count > 0
+
+
+async def search_sections_semantic(
+    session: Session,
+    documentation_id: uuid.UUID,
+    query: str,
+    limit: int,
+    offset: int,
+) -> tuple[list[tuple[DocumentationSection, float]], PaginationResult]:
+    """Semantic search using PGVector cosine distance."""
+    from app.services.embedding import embed_query
+
+    query_vector = await embed_query(query)
+
+    # Use pgvector's <=> cosine distance operator
+    # Wrap in type_coerce(..., Float) to ensure result is treated as a float, not a vector
+    vector_str = "[" + ",".join(str(v) for v in query_vector) + "]"
+    raw_expr = DocumentationSection.embedding.op("<=>")(text(f"'{vector_str}'::vector"))
+    distance_expr = type_coerce(raw_expr, Float).label("distance")
+
+    base_filter = (
+        DocumentationSection.documentation_id == documentation_id,
+        DocumentationSection.embedding.is_not(None),
+    )
+
+    total = session.exec(
+        select(func.count())
+        .select_from(DocumentationSection)
+        .where(*base_filter)
+    ).one()
+
+    rows = session.exec(
+        select(DocumentationSection, distance_expr)
+        .where(*base_filter)
+        .order_by("distance")
+        .offset(offset)
+        .limit(limit)
+    ).all()
+
+    results: list[tuple[DocumentationSection, float]] = []
+    for section, distance in rows:
+        similarity = max(0.0, 1.0 - float(distance))
+        results.append((section, similarity))
 
     return results, PaginationResult(total=total, limit=limit, offset=offset)
 

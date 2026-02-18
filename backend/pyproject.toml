@@ -10,6 +10,7 @@ dependencies = [
   "fastapi>=0.121.0",
   "fastmcp>=2.14.0",
   "pgvector>=0.4.1",
+  "pydantic-ai-slim[bedrock]>=1.61.0",
   "psycopg[binary]>=3.2.13",
   "pydantic-settings>=2.11.0",
   "redis>=5.2.1,<6.5",

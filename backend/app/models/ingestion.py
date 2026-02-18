@@ -10,9 +10,10 @@ try:
     from pgvector.sqlalchemy import Vector
 except Exception:  # pragma: no cover - fallback for environments without pgvector installed
     Vector = None
+from app.config import settings
 
 if Vector is not None:
-    EMBEDDING_COLUMN_TYPE = JSON().with_variant(Vector(1536), "postgresql")
+    EMBEDDING_COLUMN_TYPE = JSON().with_variant(Vector(settings.embedding_dimension), "postgresql")
 else:
     EMBEDDING_COLUMN_TYPE = JSON()
 
@@ -51,6 +52,10 @@ class Documentation(SQLModel, table=True):
         default_factory=utcnow,
         sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()),
     )
+
+    # Embedding metadata — tracks which model/dimension was used for this documentation set
+    embedding_model_name: str | None = Field(default=None, sa_column=Column(String(length=255), nullable=True))
+    embedding_dimension_size: int | None = Field(default=None, nullable=True)
 
     sections: list["DocumentationSection"] = Relationship(back_populates="documentation")
     jobs: list["IngestionJob"] = Relationship(back_populates="documentation")
