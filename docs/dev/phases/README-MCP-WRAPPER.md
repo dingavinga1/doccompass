@@ -55,3 +55,28 @@ Wrap core documentation capabilities as MCP-compatible tools with secure token-g
 - Tool registration and schemas
 - Auth/rate-limit middleware
 - MCP integration tests and docs
+
+## Current Status (2026-02-18)
+- Implemented in backend:
+  - `backend/app/mcp/server.py` mounts FastMCP at `/mcp` (streamable HTTP, read-only tools only).
+  - Bearer token auth enforced via `Authorization: Bearer <MCP_SERVER_TOKEN>`.
+  - In-memory MCP rate limit + request logging middleware enabled for MCP transport.
+  - Allowlisted tools exposed from FastAPI via operation IDs:
+    - `list_documentations`
+    - `list_documentation_sections`
+    - `get_section_content`
+    - `get_documentation_tree`
+    - `search_documentation`
+- Guardrails:
+  - No ingestion endpoints or delete endpoint are exposed as MCP tools.
+  - Search mode remains `keyword_fallback` until embedding phase.
+- Tests:
+  - `backend/tests/test_mcp_wrapper.py` covers tool discovery allowlist, auth, contracts, and not-found behavior.
+
+## Notes
+- MCP endpoint:
+  - `POST /mcp`
+  - `GET /mcp`
+- Required request headers for MCP clients:
+  - `Authorization: Bearer <MCP_SERVER_TOKEN>`
+  - `Accept: application/json, text/event-stream`

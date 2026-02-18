@@ -34,7 +34,12 @@ ERROR_RESPONSES = {
 }
 
 
-@router.get("", response_model=DocumentationListResponse, responses=ERROR_RESPONSES)
+@router.get(
+    "",
+    response_model=DocumentationListResponse,
+    responses=ERROR_RESPONSES,
+    operation_id="list_documentations",
+)
 def list_documentations_endpoint(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
@@ -47,7 +52,12 @@ def list_documentations_endpoint(
     )
 
 
-@router.get("/{documentation_id}", response_model=SectionListResponse, responses=ERROR_RESPONSES)
+@router.get(
+    "/{documentation_id}",
+    response_model=SectionListResponse,
+    responses=ERROR_RESPONSES,
+    operation_id="list_documentation_sections",
+)
 def list_documentation_sections_endpoint(
     documentation_id: uuid.UUID,
     limit: int = Query(default=50, ge=1, le=200),
@@ -85,7 +95,12 @@ def list_documentation_sections_endpoint(
     )
 
 
-@router.get("/{documentation_id}/tree", response_model=DocumentationTreeResponse, responses=ERROR_RESPONSES)
+@router.get(
+    "/{documentation_id}/tree",
+    response_model=DocumentationTreeResponse,
+    responses=ERROR_RESPONSES,
+    operation_id="get_documentation_tree",
+)
 def get_documentation_tree_endpoint(
     documentation_id: uuid.UUID,
     session: Session = Depends(get_session),
@@ -100,7 +115,12 @@ def get_documentation_tree_endpoint(
     )
 
 
-@router.get("/{documentation_id}/search", response_model=SearchResponse, responses=ERROR_RESPONSES)
+@router.get(
+    "/{documentation_id}/search",
+    response_model=SearchResponse,
+    responses=ERROR_RESPONSES,
+    operation_id="search_documentation",
+)
 def search_documentation_endpoint(
     documentation_id: uuid.UUID,
     q: str = Query(min_length=2),
@@ -125,6 +145,7 @@ def search_documentation_endpoint(
     "/{documentation_id}/sections/{section_path:path}",
     response_model=SectionContentResponse,
     responses=ERROR_RESPONSES,
+    operation_id="get_section_content",
 )
 def get_section_content_endpoint(
     documentation_id: uuid.UUID,

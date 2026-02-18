@@ -4,7 +4,11 @@
 
 ## Current Status (2026-02-18)
 
-- Completed: ingestion pipeline (crawl/parse/persist/checksum delta + stop/cancel), Phase 4 documentation-serving endpoints, and test coverage for those APIs.
+- Completed:
+  - ingestion pipeline (crawl/parse/persist/checksum delta + stop/cancel),
+  - Phase 4 documentation-serving endpoints,
+  - Phase 5 MCP wrapper (`/mcp`) with read-only tool allowlist + bearer auth,
+  - backend test coverage for API + MCP wrapper contracts.
 - Active search mode in production: `keyword_fallback` (`/documentation/{id}/search`).
 - Deferred: provider-backed embeddings/vector retrieval (tracked in `docs/dev/phases/README-EMBEDDING-INDEXING.md`).
 - Canonical execution sequencing is maintained in `docs/dev/phases/README.md`.
@@ -213,20 +217,29 @@ GET /documentation/:id/search  -- keyword fallback in Phase 4, semantic in embed
 
 ---
 
-## Phase 5 — Dashboard Features
+## Phase 5 — MCP Wrapper
 
-- Listing of ingestions with status & last_synced
-- Adjustable frequency (`cron_schedule`)
-- Start / Stop ingestion
-- Tree view of sections
-- Minimal monospace retro/gamified style
-- Manual trigger for re-ingestion
+- FastMCP auto-conversion from FastAPI with strict allowlist via operation IDs.
+- Mounted MCP transport endpoint:
+  - `POST /mcp`
+  - `GET /mcp`
+- Exposed tools:
+  - `list_documentations`
+  - `list_documentation_sections`
+  - `get_section_content`
+  - `get_documentation_tree`
+  - `search_documentation`
+- Security:
+  - MCP requests require `Authorization: Bearer <MCP_SERVER_TOKEN>`.
+  - In-memory MCP rate limiting and request logging enabled.
+- Read-only guardrail:
+  - No mutation endpoints (`DELETE`, ingestion controls) are exposed via MCP.
 
 ---
 
 ## Phase 6 — Security & Reliability
 
-- `MCP_SERVER_TOKEN` header for all MCP endpoints
+- `MCP_SERVER_TOKEN` bearer auth for MCP transport
 - Rate-limit ingestion (3 jobs at a time- configurable)
 - Logging & error tracking in Celery
 - Retry on failed tasks

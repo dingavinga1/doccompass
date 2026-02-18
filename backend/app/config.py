@@ -15,6 +15,8 @@ class Settings(BaseSettings):
         alias="POSTGRES_CONNECTION_STRING",
     )
     mcp_server_token: str = Field(default="super-secret-token", alias="MCP_SERVER_TOKEN")
+    mcp_rate_limit_window_seconds: int = Field(default=60, alias="MCP_RATE_LIMIT_WINDOW_SECONDS")
+    mcp_rate_limit_max_requests: int = Field(default=120, alias="MCP_RATE_LIMIT_MAX_REQUESTS")
     store_raw_pages: bool = Field(default=False, alias="STORE_RAW_PAGES")
 
 

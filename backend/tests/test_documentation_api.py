@@ -8,7 +8,7 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from app.db import get_session
-from app.main import app
+from app.main import create_app
 from app.models import Documentation, DocumentationSection, IngestionJob, IngestionStatus, RawPage
 
 
@@ -23,6 +23,7 @@ def override_get_session():
 
 @pytest.fixture
 def client():
+    app = create_app()
     app.dependency_overrides[get_session] = override_get_session
     with TestClient(app) as test_client:
         yield test_client
