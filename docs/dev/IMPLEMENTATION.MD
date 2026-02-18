@@ -246,7 +246,9 @@ GET /documentation/:id/search  -- keyword fallback in Phase 4, semantic in embed
 
 ---
 
-## Phase 7 — Dockerization
+## Phase 7 — Frontend Setup
+
+This phase delivers the operator dashboard (ingestion controls, status tracking, documentation browsing) and includes frontend runtime containerization needed to deploy the app.
 
 ### Backend Dockerfile
 
@@ -262,7 +264,7 @@ EXPOSE 8000
 CMD ["uv", "run", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-### Frontend Dockerfile
+### Frontend Dockerfile (Build + Static Runtime)
 
 ```dockerfile
 FROM node:20-alpine
@@ -332,7 +334,7 @@ volumes:
 
 ---
 
-## Phase 8 — Acceptance Criteria
+## Operational Acceptance Checklist
 
 1. Ingest **FastAPI docs**
 2. Verify:
@@ -347,7 +349,7 @@ volumes:
 
 ---
 
-## Phase 9 — Step-by-Step Implementation
+## Step-by-Step Implementation
 
 1. Setup Docker + uv + env
 2. Implement database schema & migrations
