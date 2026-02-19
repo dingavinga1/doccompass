@@ -15,11 +15,13 @@ def test_parse_sections_builds_hierarchy_and_stable_paths():
     sections = parse_sections(pages)
     paths = [section.path for section in sections]
 
-    assert "/httpsdocsexamplecomguide/intro" in paths
-    assert "/httpsdocsexamplecomguide/intro/install" in paths
-    assert "/httpsdocsexamplecomguide/intro/install-2" in paths
+    # New logic uses URL path as root. 
+    # url path for https://docs.example.com/guide is /guide
+    assert "/guide/intro" in paths
+    assert "/guide/intro/install" in paths
+    assert "/guide/intro/install-2" in paths
 
     install = next(section for section in sections if section.path.endswith("/install"))
-    assert install.parent_path == "/httpsdocsexamplecomguide/intro"
+    assert install.parent_path == "/guide/intro"
     assert install.token_count > 0
     assert len(install.checksum) == 64

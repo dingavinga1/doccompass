@@ -37,12 +37,20 @@ def _checksum(title: str, content: str, level: int, url: str) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+
+from urllib.parse import urlparse, unquote
+
 def parse_sections(pages: list[CrawledPage]) -> list[ParsedSection]:
     sections: list[ParsedSection] = []
 
     for page in pages:
-        page_slug = slugify(page.url)
-        root_path = f"/{page_slug}"
+        # Use the URL path as the root path, ensuring it starts with / and doesn't end with /
+        parsed_url = urlparse(page.url)
+        path = parsed_url.path
+        if not path.startswith("/"):
+            path = "/" + path
+        root_path = path.rstrip("/")
+
         lines = page.markdown.splitlines()
 
         stack: list[dict[str, object]] = []
@@ -60,6 +68,13 @@ def parse_sections(pages: list[CrawledPage]) -> list[ParsedSection]:
             parent_path = current["parent_path"]
             path = str(current["path"])
             summary = content[:240]
+            
+            # Generate URL with anchor for specific sections
+            url = page.url
+            if level > 1:
+                anchor = slugify(title)
+                if anchor:
+                    url = f"{page.url}#{anchor}"
 
             sections.append(
                 ParsedSection(
@@ -69,9 +84,9 @@ def parse_sections(pages: list[CrawledPage]) -> list[ParsedSection]:
                     summary=summary,
                     content=content,
                     level=level,
-                    url=page.url,
+                    url=url,
                     token_count=len(content.split()),
-                    checksum=_checksum(title=title, content=content, level=level, url=page.url),
+                    checksum=_checksum(title=title, content=content, level=level, url=url),
                 )
             )
             current = None
@@ -84,7 +99,16 @@ def parse_sections(pages: list[CrawledPage]) -> list[ParsedSection]:
                 finalize_current()
 
                 level = len(heading_match.group(1))
-                title = heading_match.group(2).strip()
+                raw_title = heading_match.group(2).strip()
+                # Remove markdown links (e.g. [Title](url)) or permalinks (e.g. Title[¶](url))
+                # Simple link removal: [text](url) -> text
+                # We also need to handle trailing permalinks like "Title[¶](url)" -> "Title"
+                
+                # First, remove generic markdown links: [text](url) -> text
+                title = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", raw_title)
+                
+                # Then specifically remove the permalink symbol often used: ¶
+                title = title.replace("¶", "").strip()
 
                 while stack and int(stack[-1]["level"]) >= level:
                     stack.pop()
@@ -94,7 +118,12 @@ def parse_sections(pages: list[CrawledPage]) -> list[ParsedSection]:
                 key = (parent_path, slug)
                 counters[key] = counters.get(key, 0) + 1
                 suffix = "" if counters[key] == 1 else f"-{counters[key]}"
-                path = f"{parent_path}/{slug}{suffix}"
+                
+                # Construct path by appending slug to parent path
+                if parent_path == "/":
+                     path = f"/{slug}{suffix}"
+                else:
+                     path = f"{parent_path}/{slug}{suffix}"
 
                 current = {
                     "title": title,
@@ -114,7 +143,9 @@ def parse_sections(pages: list[CrawledPage]) -> list[ParsedSection]:
 
         intro_content = "\n".join(intro_lines).strip()
         if intro_content:
-            intro_path = f"{root_path}/intro"
+            # Intro path logic: append /intro to root path
+            intro_path = f"{root_path}/intro" if root_path != "/" else "/intro"
+            
             sections.append(
                 ParsedSection(
                     path=intro_path,
@@ -130,7 +161,7 @@ def parse_sections(pages: list[CrawledPage]) -> list[ParsedSection]:
             )
 
         if not lines:
-            empty_path = f"{root_path}/content"
+            empty_path = f"{root_path}/content" if root_path != "/" else "/content"
             sections.append(
                 ParsedSection(
                     path=empty_path,
@@ -146,3 +177,4 @@ def parse_sections(pages: list[CrawledPage]) -> list[ParsedSection]:
             )
 
     return sections
+

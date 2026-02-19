@@ -12,7 +12,7 @@ Expose stable REST endpoints for ingestion control and documentation/section ret
   - `GET /documentation`
   - `GET /documentation/:id`
   - `DELETE /documentation/:id`
-  - `GET /documentation/:id/sections/{path}`
+  - `GET /documentation/:id/content?path=...`
   - `GET /documentation/:id/tree`
   - `GET /documentation/:id/search`
 
@@ -28,7 +28,7 @@ Expose stable REST endpoints for ingestion control and documentation/section ret
 2. Define Pydantic request/response schemas with explicit examples.
 3. Implement endpoint handlers delegating to service layer only (thin controllers).
 4. Add pagination support for section listing (`limit`, `offset`, `start_path`).
-5. Implement section content retrieval via encoded `section_path`.
+5. Implement section content retrieval via `path` query parameter.
 6. Implement keyword fallback search endpoint returning ranked results and scores.
 7. Add delete behavior with cascade and consistent `404` for missing IDs.
 8. Standardize API error responses (validation, not found, conflict, internal).
@@ -61,7 +61,7 @@ Expose stable REST endpoints for ingestion control and documentation/section ret
 - Verified manually against ingested FastAPI docs via host `curl`:
   - `/documentation`
   - `/documentation/{id}`
-  - `/documentation/{id}/sections/{path}`
+  - `/documentation/{id}/content?path=...`
   - `/documentation/{id}/tree`
   - `/documentation/{id}/search`
   - `DELETE /documentation/{id}` (missing-id behavior)

@@ -14,6 +14,6 @@ export function getDocumentationTree(documentationId: string): Promise<Documenta
 }
 
 export function getSectionContent(documentationId: string, sectionPath: string): Promise<SectionContentResponse> {
-  const encoded = encodeURIComponent(sectionPath);
-  return apiRequest<SectionContentResponse>(`/documentation/${documentationId}/sections/${encoded}`);
+  const params = new URLSearchParams({ path: sectionPath });
+  return apiRequest<SectionContentResponse>(`/documentation/${documentationId}/content?${params.toString()}`);
 }

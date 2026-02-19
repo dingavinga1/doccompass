@@ -191,3 +191,35 @@ async def test_embed_query_dimension_mismatch(mock_embedder_cls, mock_settings):
 
     with pytest.raises(ValueError, match="Query embedding dimension mismatch"):
         await embed_query("test")
+
+
+@patch("app.services.embedding.settings")
+@patch("app.services.embedding.Embedder")
+@pytest.mark.anyio
+async def test_embed_sections_truncation(mock_embedder_cls, mock_settings):
+    """Test that extremely long texts are truncated before embedding."""
+    mock_settings.embedding_model = "test-model"
+    mock_settings.embedding_batch_size = 1
+    mock_settings.embedding_max_retries = 1
+    mock_settings.embedding_dimension = 2
+
+    # Create a text longer than the MAX_CHARS limit (28000)
+    result_mock = MagicMock()
+    result_mock.embeddings = [[0.1, 0.2]]
+    mock_instance = MagicMock()
+    mock_instance.embed_documents = AsyncMock(return_value=result_mock)
+    mock_embedder_cls.return_value = mock_instance
+
+    long_text = "a" * 30000
+    expected_truncated = "a" * 28000
+
+    from app.services.embedding import embed_sections
+
+    await embed_sections([long_text])
+
+    # Verify the embedder was called with the truncated text
+    mock_instance.embed_documents.assert_called_once()
+    call_args = mock_instance.embed_documents.call_args[0][0]
+    assert len(call_args) == 1
+    assert len(call_args[0]) == 28000
+    assert call_args[0] == expected_truncated

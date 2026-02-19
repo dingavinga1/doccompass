@@ -142,14 +142,23 @@ def _apply_sections_delta(
     changed_ids: list[uuid.UUID] = []
 
     for parsed in parsed_sections:
-        existing = existing_by_path.get(parsed.path)
-        if existing and existing.checksum == parsed.checksum:
-            path_to_model[parsed.path] = existing
-            continue
-
+        # Check if we've already processed this path in the current batch
+        existing = path_to_model.get(parsed.path)
+        
         if existing is None:
-            existing = DocumentationSection(documentation_id=documentation_id, path=parsed.path)
+            # Not in batch, check database
+            existing = existing_by_path.get(parsed.path)
+            
+            # If exists in DB and checksum matches, mark as processed and skip update
+            if existing and existing.checksum == parsed.checksum:
+                path_to_model[parsed.path] = existing
+                continue
 
+            # If not in DB, create new instance
+            if existing is None:
+                existing = DocumentationSection(documentation_id=documentation_id, path=parsed.path)
+
+        # Update (or re-update) fields
         existing.title = parsed.title
         existing.summary = parsed.summary
         existing.content = parsed.content
@@ -161,8 +170,10 @@ def _apply_sections_delta(
 
         session.add(existing)
         session.flush()
+        
         path_to_model[parsed.path] = existing
-        changed_ids.append(existing.id)
+        if existing.id not in changed_ids:
+            changed_ids.append(existing.id)
 
     stale_sections = [section for section in existing_sections if section.path not in incoming_paths]
     for stale in stale_sections:

@@ -77,19 +77,25 @@ export const handlers = [
       ]
     });
   }),
-  http.get("/api/documentation/doc-1/sections/%2Fguide%2Fintro", () => {
-    return HttpResponse.json({
-      id: "section-2",
-      documentation_id: "doc-1",
-      path: "/guide/intro",
-      parent_id: "section-1",
-      title: "Intro",
-      summary: "Welcome",
-      content: "Introduction content",
-      level: 2,
-      url: "https://docs.example.com/guide/intro",
-      token_count: 12,
-      checksum: "abc"
-    });
+  http.get("/api/documentation/doc-1/content", ({ request }) => {
+    const url = new URL(request.url);
+    const path = url.searchParams.get("path");
+
+    if (path === "/guide/intro") {
+      return HttpResponse.json({
+        id: "section-2",
+        documentation_id: "doc-1",
+        path: "/guide/intro",
+        parent_id: "section-1",
+        title: "Intro",
+        summary: "Welcome",
+        content: "Introduction content",
+        level: 2,
+        url: "https://docs.example.com/guide/intro",
+        token_count: 12,
+        checksum: "abc"
+      });
+    }
+    return new HttpResponse(null, { status: 404 });
   })
 ];

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import asyncio
 import fnmatch
-import importlib
-import inspect
-from collections import deque
 from dataclasses import dataclass
-from urllib.parse import urljoin, urlparse, urlunparse
+from urllib.parse import urlparse, urlunparse
+
+from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, CacheMode
+from crawl4ai.deep_crawling import BFSDeepCrawlStrategy
+from crawl4ai.deep_crawling.filters import FilterChain, URLPatternFilter
 
 
 @dataclass(slots=True)
@@ -28,39 +28,20 @@ def normalize_url(url: str) -> str:
     return urlunparse(cleaned)
 
 
-def _matches_patterns(url: str, patterns: list[str]) -> bool:
-    return any(fnmatch.fnmatch(url, pattern) for pattern in patterns)
+class _ExcludePatternFilter:
+    """Filter that *rejects* URLs matching any of the given glob patterns.
 
+    Crawl4AI's built-in ``URLPatternFilter`` is include-only (accept on
+    match).  This thin wrapper inverts that logic so we can express
+    ``exclude_patterns`` without a custom subclass.
+    """
 
-def _can_visit(url: str, include_patterns: list[str], exclude_patterns: list[str]) -> bool:
-    if exclude_patterns and _matches_patterns(url, exclude_patterns):
-        return False
-    if include_patterns:
-        return _matches_patterns(url, include_patterns)
-    return True
+    def __init__(self, patterns: list[str]) -> None:
+        self._patterns = patterns
 
-
-def _extract_links(result: object, source_url: str) -> list[str]:
-    links: list[str] = []
-    raw_links = getattr(result, "links", None)
-    if isinstance(raw_links, dict):
-        values = []
-        for _, items in raw_links.items():
-            if isinstance(items, list):
-                values.extend(items)
-        raw_links = values
-
-    if isinstance(raw_links, list):
-        for item in raw_links:
-            href = None
-            if isinstance(item, str):
-                href = item
-            elif isinstance(item, dict):
-                href = item.get("href") or item.get("url")
-            if href:
-                links.append(urljoin(source_url, href))
-
-    return links
+    def apply(self, url: str) -> bool:  # noqa: D401
+        """Return ``True`` (keep) when the URL does *not* match any pattern."""
+        return not any(fnmatch.fnmatch(url, p) for p in self._patterns)
 
 
 def _extract_markdown(result: object) -> str:
@@ -79,97 +60,104 @@ def _extract_markdown(result: object) -> str:
     return str(markdown)
 
 
-def _build_run_config(crawl4ai_module: object, timeout_seconds: int):
-    CrawlerRunConfig = getattr(crawl4ai_module, "CrawlerRunConfig")
-    CacheMode = getattr(crawl4ai_module, "CacheMode", None)
+def _build_filter_chain(
+    include_patterns: list[str],
+    exclude_patterns: list[str],
+) -> FilterChain | None:
+    """Build a Crawl4AI ``FilterChain`` from include/exclude glob lists."""
+    filters: list[object] = []
 
-    kwargs: dict[str, object] = {}
-    params = inspect.signature(CrawlerRunConfig).parameters
+    if include_patterns:
+        filters.append(URLPatternFilter(patterns=include_patterns))
+    if exclude_patterns:
+        filters.append(_ExcludePatternFilter(patterns=exclude_patterns))
 
-    if "cache_mode" in params and CacheMode is not None and hasattr(CacheMode, "BYPASS"):
-        kwargs["cache_mode"] = CacheMode.BYPASS
-    if "page_timeout" in params:
-        kwargs["page_timeout"] = timeout_seconds * 1000
-    elif "timeout" in params:
-        kwargs["timeout"] = timeout_seconds
-
-    return CrawlerRunConfig(**kwargs)
-
-
-async def _crawl_one(crawler: object, url: str, run_config: object) -> object:
-    arun = getattr(crawler, "arun")
-    params = inspect.signature(arun).parameters
-    if "config" in params:
-        return await arun(url=url, config=run_config)
-    return await arun(url=url)
+    return FilterChain(filters) if filters else None
 
 
 async def crawl_site(
     start_url: str,
-    max_depth: int = 3,
+    max_depth: int | None = 3,
     include_patterns: list[str] | None = None,
     exclude_patterns: list[str] | None = None,
-    max_pages: int = 500,
+    max_pages: int | None = 500,
     timeout_seconds: int = 30,
     retries: int = 2,
 ) -> list[CrawledPage]:
+    """Crawl a documentation site using Crawl4AI's BFS deep crawl strategy.
+
+    Parameters
+    ----------
+    start_url:
+        Root URL to begin crawling.
+    max_depth:
+        Maximum depth of links to follow (``None`` for unlimited).
+    include_patterns:
+        Glob patterns — only URLs matching at least one pattern are
+        followed.
+    exclude_patterns:
+        Glob patterns — URLs matching any pattern are skipped.
+    max_pages:
+        Hard cap on total pages crawled (``None`` for unlimited).
+    timeout_seconds:
+        Per-page timeout in milliseconds (passed as ``page_timeout``).
+    retries:
+        Kept for backward compatibility; Crawl4AI handles retries
+        internally.
+    """
     include_patterns = include_patterns or []
     exclude_patterns = exclude_patterns or []
 
-    crawl4ai_module = importlib.import_module("crawl4ai")
-    AsyncWebCrawler = getattr(crawl4ai_module, "AsyncWebCrawler")
-    run_config = _build_run_config(crawl4ai_module, timeout_seconds)
-
     start_url = normalize_url(start_url)
-    queue: deque[tuple[str, int]] = deque([(start_url, 0)])
-    visited: set[str] = set()
-    pages: list[CrawledPage] = []
 
+    filter_chain = _build_filter_chain(include_patterns, exclude_patterns)
+
+    # ── Strategy ────────────────────────────────────────────────────
+    strategy_kwargs: dict[str, object] = {
+        "max_depth": max_depth if max_depth is not None else 100,
+        "include_external": False,
+    }
+    if max_pages is not None:
+        strategy_kwargs["max_pages"] = max_pages
+    if filter_chain is not None:
+        strategy_kwargs["filter_chain"] = filter_chain
+
+    strategy = BFSDeepCrawlStrategy(**strategy_kwargs)
+
+    # ── Run config ──────────────────────────────────────────────────
+    config = CrawlerRunConfig(
+        deep_crawl_strategy=strategy,
+        cache_mode=CacheMode.BYPASS,
+        page_timeout=timeout_seconds * 1000,
+        stream=False,
+    )
+
+    # ── Crawl ───────────────────────────────────────────────────────
     async with AsyncWebCrawler() as crawler:
-        while queue and len(pages) < max_pages:
-            url, depth = queue.popleft()
-            normalized = normalize_url(url)
-            if normalized in visited:
-                continue
-            if depth > max_depth:
-                continue
-            if not _can_visit(normalized, include_patterns, exclude_patterns):
-                continue
+        results = await crawler.arun(start_url, config=config)
 
-            visited.add(normalized)
+    # Ensure we always work with a list (single-page fallback)
+    if not isinstance(results, list):
+        results = [results]
 
-            last_error: Exception | None = None
-            result = None
-            for _ in range(retries + 1):
-                try:
-                    result = await _crawl_one(crawler, normalized, run_config)
-                    break
-                except Exception as exc:  # pragma: no cover - retry path
-                    last_error = exc
-                    await asyncio.sleep(0.25)
+    pages: list[CrawledPage] = []
+    for result in results:
+        if hasattr(result, "success") and not getattr(result, "success"):
+            continue
 
-            if result is None:
-                if last_error is not None:
-                    raise last_error
-                continue
+        markdown = _extract_markdown(result)
+        html = getattr(result, "html", None) or getattr(result, "cleaned_html", None)
+        depth = 0
+        if hasattr(result, "metadata") and isinstance(result.metadata, dict):
+            depth = result.metadata.get("depth", 0)
 
-            if hasattr(result, "success") and not getattr(result, "success"):
-                continue
-
-            markdown = _extract_markdown(result)
-            html = getattr(result, "html", None) or getattr(result, "cleaned_html", None)
-
-            pages.append(CrawledPage(url=normalized, markdown=markdown, html=html, depth=depth))
-
-            if depth >= max_depth:
-                continue
-
-            for link in _extract_links(result, normalized):
-                absolute = normalize_url(link)
-                if absolute in visited:
-                    continue
-                if not _can_visit(absolute, include_patterns, exclude_patterns):
-                    continue
-                queue.append((absolute, depth + 1))
+        pages.append(
+            CrawledPage(
+                url=getattr(result, "url", start_url),
+                markdown=markdown,
+                html=html,
+                depth=depth,
+            )
+        )
 
     return pages

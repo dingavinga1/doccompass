@@ -164,21 +164,21 @@ async def search_documentation_endpoint(
 
 
 @router.get(
-    "/{documentation_id}/sections/{section_path:path}",
+    "/{documentation_id}/content",
     response_model=SectionContentResponse,
     responses=ERROR_RESPONSES,
     operation_id="get_section_content",
 )
 def get_section_content_endpoint(
     documentation_id: uuid.UUID,
-    section_path: str,
+    path: str = Query(..., description="The exact path of the section"),
     session: Session = Depends(get_session),
 ) -> SectionContentResponse:
     documentation = session.get(Documentation, documentation_id)
     if documentation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Documentation not found")
 
-    section = get_section_content(session=session, documentation_id=documentation_id, section_path=section_path)
+    section = get_section_content(session=session, documentation_id=documentation_id, section_path=path)
     if section is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Section not found")
     return SectionContentResponse(

@@ -24,12 +24,14 @@ Implement a reliable ingestion pipeline that crawls documentation sites, parses 
 1. Implement SQLModel models and migrations for all ingestion tables.
 2. Build ingestion service to create jobs and enqueue Celery workflows.
 3. Implement crawler adapter:
-   - depth limits
-   - include/exclude patterns
-   - dedupe URLs
-   - retry/backoff policy
+   - Use `BFSDeepCrawlStrategy` for native depth control and page limits.
+   - Implement `FilterChain` with `URLPatternFilter` for include patterns.
+   - Add custom exclusion logic for exclude patterns.
+   - Leverage native Crawl4AI retry/backoff.
 4. Implement raw page persistence pipeline (`raw_page`) behind a feature flag.
-5. Build parser for heading-based section tree with stable `path` generation.
+5. Build parser for heading-based section tree with stable path generation.
+   - **Path Strategy**: Use the URL path as the root (e.g. `/fastapi/dependencies`) instead of slugifying the full URL.
+   - **Title Cleaning**: Strip markdown links and permalinks from headers to ensure clean titles and paths.
 6. Compute per-section checksums and upsert changed sections only.
 7. Update ingestion progress fields and state transitions consistently.
 8. Add stop/cancel flow and graceful task interruption points.

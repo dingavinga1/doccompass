@@ -143,7 +143,7 @@ def test_mcp_read_only_tool_contracts(client: TestClient):
             "name": "get_section_content",
             "arguments": {
                 "documentation_id": str(doc_id),
-                "section_path": urllib.parse.quote(section_path, safe=""),
+                "path": section_path,
             },
         },
         token="super-secret-token",

@@ -42,16 +42,25 @@ async def embed_sections(
     all_vectors: list[list[float]] = []
     total_batches = (len(texts) + batch_size - 1) // batch_size
 
+    # Amazon Titan Embed Text v2 has a limit of 8192 tokens.
+    # We use a conservative character limit (~3.5 chars per token) to avoid
+    # hitting the limit without expensive client-side tokenization.
+    # 8192 tokens * 3.5 chars/token ~= 28,672 chars. Rounding down to 28,000.
+    MAX_CHARS = 28000
+
     for batch_idx in range(total_batches):
         start = batch_idx * batch_size
         end = start + batch_size
         batch = texts[start:end]
 
+        # Truncate texts to avoid "Too many input tokens" error
+        truncated_batch = [text[:MAX_CHARS] for text in batch]
+
         last_error: Exception | None = None
         for attempt in range(1, max_retries + 1):
             try:
                 t0 = time.monotonic()
-                result = await embedder.embed_documents(batch)
+                result = await embedder.embed_documents(truncated_batch)
                 duration = time.monotonic() - t0
 
                 logger.info(

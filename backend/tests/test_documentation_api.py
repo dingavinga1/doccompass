@@ -121,12 +121,12 @@ def test_get_section_content_success_and_404(client: TestClient):
     _reset_data()
     doc_id = _seed_doc()
 
-    encoded = urllib.parse.quote("/guide/intro", safe="")
-    response = client.get(f"/documentation/{doc_id}/sections/{encoded}")
+    # API now expects 'path' as a query parameter, not part of the URL path
+    response = client.get(f"/documentation/{doc_id}/content", params={"path": "/guide/intro"})
     assert response.status_code == 200
     assert response.json()["path"] == "/guide/intro"
 
-    missing = client.get(f"/documentation/{doc_id}/sections/{urllib.parse.quote('/missing', safe='')}")
+    missing = client.get(f"/documentation/{doc_id}/content", params={"path": "/missing"})
     assert missing.status_code == 404
 
 

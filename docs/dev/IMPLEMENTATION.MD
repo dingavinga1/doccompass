@@ -141,7 +141,7 @@ CREATE TABLE raw_page (
    - Trigger Celery task
 
 2. Celery Worker:
-   - Status `CRAWLING` → Crawl website via crawl4ai
+   - Status `CRAWLING` → Crawl website via crawl4ai `BFSDeepCrawlStrategy`
    - Save each page to `raw_page`
    - Status `PARSING` → Parse into hierarchical sections
    - Compute `checksum`, generate `DocumentationSection`
@@ -205,7 +205,7 @@ POST /documentation/ingestion/stop
 GET /documentation           -- list_documentations
 GET /documentation/:id       -- list_documentation_sections (supports start_path, pagination)
 DELETE /documentation/:id
-GET /documentation/:id/sections/{path}  -- get_section_content
+GET /documentation/:id/content?path=...  -- get_section_content
 GET /documentation/:id/tree  -- full nested tree
 GET /documentation/:id/search  -- keyword fallback in Phase 4, semantic in embedding phase (phase-docs Phase 8)
 ```
@@ -227,7 +227,7 @@ GET /documentation/:id/search  -- keyword fallback in Phase 4, semantic in embed
 - Exposed tools:
   - `list_documentations`
   - `list_documentation_sections`
-  - `get_section_content`
+  - `get_section_content` (uses `path` argument)
   - `get_documentation_tree`
   - `search_documentation`
 - Security:
