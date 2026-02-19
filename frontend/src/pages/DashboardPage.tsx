@@ -7,7 +7,7 @@ import { startIngestion } from "../api/ingestion";
 import type { StartIngestionRequest } from "../api/types";
 import { DocumentationList } from "../components/DocumentationList";
 import { IngestionForm, type IngestionFormValues } from "../components/IngestionForm";
-import { JobTracker, type TrackedJob } from "../components/JobTracker";
+import { IngestionJobList } from "../components/IngestionJobList";
 import { ToastItem, ToastStack } from "../components/ToastStack";
 
 function toRequestPayload(values: IngestionFormValues): StartIngestionRequest {
@@ -21,7 +21,6 @@ function toRequestPayload(values: IngestionFormValues): StartIngestionRequest {
 
 export function DashboardPage() {
   const queryClient = useQueryClient();
-  const [trackedJobs, setTrackedJobs] = useState<TrackedJob[]>([]);
   const [selectedDocumentationId, setSelectedDocumentationId] = useState<string | undefined>();
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -42,13 +41,10 @@ export function DashboardPage() {
     mutationFn: (payload: { request: StartIngestionRequest; url: string }) =>
       startIngestion(payload.request),
     onSuccess: (data, variables) => {
-      setTrackedJobs((prev) => [
-        { jobId: data.job_id, documentationId: data.documentation_id, url: variables.url },
-        ...prev
-      ]);
       setSelectedDocumentationId(data.documentation_id);
       addToast("Ingestion job started.", "success");
       void queryClient.invalidateQueries({ queryKey: ["documentations"] });
+      void queryClient.invalidateQueries({ queryKey: ["ingestion-jobs"] });
     },
     onError: () => addToast("Failed to start ingestion.", "error")
   });
@@ -85,10 +81,10 @@ export function DashboardPage() {
         <p>Ingest, browse, and serve documentation via MCP.</p>
       </header>
 
-      <div className="two-col">
-        <IngestionForm onSubmit={handleSubmit} isSubmitting={startMutation.isPending} />
-        <JobTracker jobs={trackedJobs} onToast={addToast} />
-      </div>
+      <IngestionForm onSubmit={handleSubmit} isSubmitting={startMutation.isPending} />
+
+
+      <IngestionJobList />
 
       <section className="panel">
         <div className="panel-title-row">
@@ -115,6 +111,6 @@ export function DashboardPage() {
       </section>
 
       <ToastStack toasts={toasts} />
-    </div>
+    </div >
   );
 }

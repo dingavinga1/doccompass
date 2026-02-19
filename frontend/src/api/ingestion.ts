@@ -4,7 +4,8 @@ import type {
   StartIngestionRequest,
   StartIngestionResponse,
   StopIngestionRequest,
-  StopIngestionResponse
+  StopIngestionResponse,
+  IngestionJobListResponse
 } from "./types";
 
 export function startIngestion(payload: StartIngestionRequest): Promise<StartIngestionResponse> {
@@ -23,4 +24,19 @@ export function stopIngestion(payload: StopIngestionRequest): Promise<StopIngest
     method: "POST",
     body: JSON.stringify(payload)
   });
+}
+
+export function listIngestionJobs(
+  skip = 0,
+  limit = 100,
+  status?: string
+): Promise<IngestionJobListResponse> {
+  const params = new URLSearchParams({
+    skip: skip.toString(),
+    limit: limit.toString()
+  });
+  if (status) {
+    params.append("status", status);
+  }
+  return apiRequest<IngestionJobListResponse>(`/documentation/ingestion?${params.toString()}`);
 }

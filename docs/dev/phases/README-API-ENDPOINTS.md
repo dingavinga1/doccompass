@@ -6,6 +6,7 @@ Expose stable REST endpoints for ingestion control and documentation/section ret
 ## Inputs From Master Plan
 - Ingestion endpoints:
   - `POST /documentation/ingestion`
+  - `GET /documentation/ingestion` (list jobs)
   - `GET /documentation/ingestion/:id`
   - `POST /documentation/ingestion/stop`
 - Documentation endpoints:
@@ -57,6 +58,7 @@ Expose stable REST endpoints for ingestion control and documentation/section ret
 ## Current Status (2026-02-18)
 - Implemented and live: all ingestion + documentation Phase 4 endpoints.
 - Search mode: `semantic` (with `keyword_fallback`).
+- Ingestion jobs listing with pagination and filtering implemented (`GET /documentation/ingestion`).
 - Auth: hook points remain out of enforcement for this phase.
 - Verified manually against ingested FastAPI docs via host `curl`:
   - `/documentation`

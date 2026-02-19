@@ -7,7 +7,7 @@ Implement a reliable ingestion pipeline that crawls documentation sites, parses 
 ## Inputs From Master Plan
 
 - Ingestion job lifecycle: `PENDING -> CRAWLING -> PARSING -> EMBEDDING -> INDEXING -> COMPLETED/FAILED/STOPPED`
-- Endpoints to start and stop ingestion
+- Endpoints to start, stop, and list ingestion jobs
 - Delta updates based on checksums
 - Optional raw page persistence
 

@@ -11,6 +11,7 @@
   - backend test coverage for API + MCP wrapper contracts,
   - provider-backed embeddings/vector retrieval (Phase 8).
 - Active search mode in production: `semantic` (with `keyword_fallback`) (`/documentation/{id}/search`).
+- Ingestion jobs listing with pagination and filtering implemented.
 - Deferred: None (Phase 8 complete).
 - Canonical execution sequencing is maintained in `docs/dev/phases/README.md`.
 
@@ -195,6 +196,7 @@ Implement production embedding generation and PGVector indexing so semantic sear
 
 ```http
 POST /documentation/ingestion
+GET /documentation/ingestion?skip=0&limit=100&status=PENDING
 GET /documentation/ingestion/:id
 POST /documentation/ingestion/stop
 ```

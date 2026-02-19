@@ -62,6 +62,18 @@ def get_ingestion_job(session: Session, job_id: uuid.UUID) -> IngestionJob | Non
     return session.get(IngestionJob, job_id)
 
 
+def list_ingestion_jobs(
+    session: Session,
+    skip: int = 0,
+    limit: int = 100,
+    status: IngestionStatus | None = None,
+) -> list[IngestionJob]:
+    query = select(IngestionJob).order_by(IngestionJob.created_at.desc()).offset(skip).limit(limit)
+    if status is not None:
+        query = query.where(IngestionJob.status == status)
+    return session.exec(query).all()
+
+
 def request_stop(session: Session, job_id: uuid.UUID) -> IngestionJob | None:
     job = session.get(IngestionJob, job_id)
     if job is None:

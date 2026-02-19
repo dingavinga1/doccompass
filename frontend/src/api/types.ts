@@ -64,6 +64,11 @@ export interface StopIngestionResponse {
   stop_requested: boolean;
 }
 
+export interface IngestionJobListResponse {
+  items: IngestionStatusResponse[];
+  total: number;
+}
+
 export interface DocumentationTreeNode {
   id: string;
   path: string;

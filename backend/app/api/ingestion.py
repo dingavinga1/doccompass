@@ -13,7 +13,9 @@ from app.api.dtos.ingestion import (
     StartIngestionResponse,
     StopIngestionRequest,
     StopIngestionResponse,
+    IngestionJobListResponse,
 )
+from app.models import IngestionStatus
 
 router = APIRouter(prefix="/documentation", tags=["ingestion"])
 
@@ -60,3 +62,40 @@ def stop_ingestion_endpoint(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ingestion job not found")
 
     return StopIngestionResponse(job_id=job.id, status=job.status, stop_requested=job.stop_requested)
+
+
+@router.get("/ingestion", response_model=IngestionJobListResponse)
+def list_ingestion_jobs_endpoint(
+    skip: int = 0,
+    limit: int = 100,
+    status: IngestionStatus | None = None,
+    session: Session = Depends(get_session),
+) -> IngestionJobListResponse:
+    from app.services.ingestion import list_ingestion_jobs
+
+    jobs = list_ingestion_jobs(session, skip=skip, limit=limit, status=status)
+    # Note: Total count would ideally require a separate query, but for now we'll just return length of items
+    # or implement a count query if needed. Let's do a simple count for now.
+    from sqlmodel import func, select
+    from app.models import IngestionJob
+
+    count_query = select(func.count()).select_from(IngestionJob)
+    if status:
+        count_query = count_query.where(IngestionJob.status == status)
+    total = session.exec(count_query).one()
+
+    return IngestionJobListResponse(
+        items=[
+            IngestionStatusResponse(
+                job_id=job.id,
+                documentation_id=job.documentation_id,
+                status=job.status,
+                progress_percent=job.progress_percent,
+                pages_processed=job.pages_processed,
+                stop_requested=job.stop_requested,
+                error_message=job.error_message,
+            )
+            for job in jobs
+        ],
+        total=total,
+    )

@@ -39,3 +39,8 @@ class StopIngestionResponse(BaseModel):
     job_id: uuid.UUID
     status: IngestionStatus
     stop_requested: bool
+
+
+class IngestionJobListResponse(BaseModel):
+    items: list[IngestionStatusResponse]
+    total: int
