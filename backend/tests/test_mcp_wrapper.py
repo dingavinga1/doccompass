@@ -82,7 +82,7 @@ def test_mcp_tools_list_exposes_only_read_only_tools(client: TestClient):
     tool_names = {tool["name"] for tool in payload["result"]["tools"]}
     assert tool_names == {
         "list_documentations",
-        "list_documentation_sections",
+        "list_docs_sections",
         "get_section_content",
         "get_documentation_tree",
         "search_documentation",
@@ -125,7 +125,7 @@ def test_mcp_read_only_tool_contracts(client: TestClient):
         request_id=6,
         method="tools/call",
         params={
-            "name": "list_documentation_sections",
+            "name": "list_docs_sections",
             "arguments": {"documentation_id": str(doc_id), "start_path": "/guide", "limit": 10, "offset": 0},
         },
         token="super-secret-token",
@@ -172,7 +172,7 @@ def test_mcp_not_found_error_surfaces_as_tool_error(client: TestClient):
         client,
         request_id=9,
         method="tools/call",
-        params={"name": "list_documentation_sections", "arguments": {"documentation_id": missing_id}},
+        params={"name": "list_docs_sections", "arguments": {"documentation_id": missing_id}},
         token="super-secret-token",
     )
 
