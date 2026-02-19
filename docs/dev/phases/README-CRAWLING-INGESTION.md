@@ -30,12 +30,17 @@ Implement a reliable ingestion pipeline that crawls documentation sites, parses 
    - Leverage native Crawl4AI retry/backoff.
 4. Implement raw page persistence pipeline (`raw_page`) behind a feature flag.
 5. Build parser for heading-based section tree with stable path generation.
-   - **Path Strategy**: Use the URL path as the root (e.g. `/fastapi/dependencies`) instead of slugifying the full URL.
+   - **Root Node Guarantee**: Every page emits a root section at the URL path (e.g. `/fastapi/dependencies`) containing intro text. All other sections on the page are children of this root.
+   - **Token-Aligned Chunking**:
+     - **Small Pages** (< `MIN_SECTION_TOKENS`): Stored as a single flat section at the root path.
+     - **Large Pages** (>= `MIN_SECTION_TOKENS`): Intro text goes to root. Remaining content is split at H1-H3 headers, but consecutive small sections are **merged** until they reach the token threshold. This ensures all sections are substantial, not micro-fragments.
    - **Title Cleaning**: Strip markdown links and permalinks from headers to ensure clean titles and paths.
 6. Compute per-section checksums and upsert changed sections only.
-7. Update ingestion progress fields and state transitions consistently.
-8. Add stop/cancel flow and graceful task interruption points.
-9. Add structured logging and failure diagnostics at each stage.
+   - **Checksum skip is per-section**: only the section with a matching checksum is skipped; the pipeline continues through all phases and always ends with `COMPLETED`.
+7. Base URL merging: `start_ingestion` computes `base_url = scheme://host` and looks up `Documentation` by that key to merge sub-link ingestion jobs into one record.
+8. Update ingestion progress fields and state transitions consistently.
+9. Add stop/cancel flow and graceful task interruption points.
+10. Add structured logging and failure diagnostics at each stage.
 
 ## Unit Testing Plan
 

@@ -2,7 +2,7 @@
 
 ---
 
-## Current Status (2026-02-18)
+## Current Status (2026-02-19)
 
 - Completed:
   - ingestion pipeline (crawl/parse/persist/checksum delta + stop/cancel),
@@ -10,6 +10,12 @@
   - Phase 5 MCP wrapper (`/mcp`) with read-only tool allowlist + bearer auth,
   - backend test coverage for API + MCP wrapper contracts,
   - provider-backed embeddings/vector retrieval (Phase 8).
+  - **Base URL merging**: sub-link ingestion jobs targeting the same host now share a single `Documentation` record via `base_url = scheme://host` lookup (`_compute_base_url` helper + `ix_documentation_base_url` index, Alembic migration `20260219_000003`).
+  - **Root Node Guarantee**: Every page emits a root section at the URL path (e.g. `/fastapi/dependencies`) containing intro text. All other sections on the page are children of this root.
+  - **Token-Aligned Chunking**:
+    - **Small Pages** (< `MIN_SECTION_TOKENS`): Stored as a single flat section at the root path.
+    - **Large Pages** (>= `MIN_SECTION_TOKENS`): Intro text goes to root. Remaining content is split at H1-H3 headers, but consecutive small sections are **merged** until they reach the token threshold. This ensures all sections are substantial, not micro-fragments.
+  - **Checksum-skip robustness**: confirmed and tested that per-section checksum comparison never aborts the full job; pipeline always reaches `COMPLETED` even when zero sections changed.
 - Active search mode in production: `semantic` (with `keyword_fallback`) (`/documentation/{id}/search`).
 - Ingestion jobs listing with pagination and filtering implemented.
 - Deferred: None (Phase 8 complete).

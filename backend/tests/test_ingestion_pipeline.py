@@ -84,3 +84,75 @@ def test_ingestion_pipeline_marks_stopped_when_requested(monkeypatch):
     refreshed_job = session.get(IngestionJob, job.id)
     assert refreshed_job is not None
     assert refreshed_job.status == IngestionStatus.STOPPED
+
+
+def test_ingestion_pipeline_no_changes_still_completes(monkeypatch):
+    """When all section checksums are unchanged the job must still reach COMPLETED.
+
+    Checksum-based skipping is per-section; the pipeline must NOT abort the full
+    job when zero sections change – embedding is skipped, but status transitions
+    continue through to COMPLETED.
+    """
+    session = _make_session()
+    doc = Documentation(url="https://example.com", crawl_depth=2)
+    session.add(doc)
+    session.commit()
+    session.refresh(doc)
+
+    job = IngestionJob(documentation_id=doc.id)
+    session.add(job)
+    session.commit()
+    session.refresh(job)
+
+    # Pre-seed a section whose checksum exactly matches what parse_sections will return
+    known_checksum = "deadbeef" * 8  # 64-hex chars
+    pre_existing = DocumentationSection(
+        documentation_id=doc.id,
+        path="/example/home",
+        title="Home",
+        summary="Text",
+        content="Text",
+        level=1,
+        url="https://example.com",
+        token_count=1,
+        checksum=known_checksum,
+    )
+    session.add(pre_existing)
+    session.commit()
+
+    async def fake_crawl_site(**kwargs):
+        return [CrawledPage(url="https://example.com", markdown="# Home\nText", html=None, depth=0)]
+
+    def fake_parse_sections(pages):
+        return [
+            ParsedSection(
+                path="/example/home",
+                parent_path=None,
+                title="Home",
+                summary="Text",
+                content="Text",
+                level=1,
+                url="https://example.com",
+                token_count=1,
+                checksum=known_checksum,  # identical → skip embedding
+            )
+        ]
+
+    embed_called = []
+
+    async def fake_embed_sections(texts, **kwargs):
+        embed_called.append(True)
+        return []
+
+    monkeypatch.setattr("app.services.ingestion.crawl_site", fake_crawl_site)
+    monkeypatch.setattr("app.services.ingestion.parse_sections", fake_parse_sections)
+    monkeypatch.setattr("app.services.embedding.embed_sections", fake_embed_sections)
+
+    asyncio.run(run_ingestion_pipeline(session, job.id))
+
+    refreshed_job = session.get(IngestionJob, job.id)
+    assert refreshed_job is not None
+    assert refreshed_job.status == IngestionStatus.COMPLETED, (
+        f"Expected COMPLETED but got {refreshed_job.status}; error: {refreshed_job.error_message}"
+    )
+    assert not embed_called, "embed_sections should NOT be called when no sections changed"

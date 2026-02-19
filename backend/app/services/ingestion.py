@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 from sqlmodel import Session, delete, select
 
@@ -17,6 +18,15 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _compute_base_url(web_url: str) -> str:
+    """Return scheme://host for *web_url* — the canonical merge key.
+
+    All sub-paths under the same host share one Documentation record.
+    """
+    parsed = urlparse(web_url.strip())
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+
 def start_ingestion(
     session: Session,
     web_url: str,
@@ -27,10 +37,18 @@ def start_ingestion(
     include_patterns = include_patterns or []
     exclude_patterns = exclude_patterns or []
 
-    doc = session.exec(select(Documentation).where(Documentation.url == web_url)).first()
+    base_url = _compute_base_url(web_url)
+
+    # Try to find an existing documentation record by base_url (host-level merge)
+    doc = session.exec(select(Documentation).where(Documentation.base_url == base_url)).first()
+    if doc is None:
+        # Fall back to exact URL match for records created before base_url was introduced
+        doc = session.exec(select(Documentation).where(Documentation.url == web_url)).first()
+
     if doc is None:
         doc = Documentation(
             url=web_url,
+            base_url=base_url,
             crawl_depth=crawl_depth,
             include_patterns=include_patterns,
             exclude_patterns=exclude_patterns,
@@ -38,9 +56,17 @@ def start_ingestion(
         session.add(doc)
         session.flush()
     else:
+        # Backfill base_url for legacy records that don't have it yet
+        if doc.base_url is None:
+            doc.base_url = base_url
+        # Update crawl settings to the latest request
         doc.crawl_depth = crawl_depth
         doc.include_patterns = include_patterns
         doc.exclude_patterns = exclude_patterns
+
+    # Record the specific start URL for this job on the documentation row
+    # so the entry-point URL is always up-to-date.
+    doc.url = web_url
 
     job = IngestionJob(
         documentation_id=doc.id,

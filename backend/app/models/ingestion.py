@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
-from sqlalchemy import Column, DateTime, JSON, String, Text, UniqueConstraint, func
+from sqlalchemy import Column, DateTime, Index, JSON, String, Text, UniqueConstraint, func
 from sqlmodel import Field, Relationship, SQLModel
 
 try:
@@ -36,8 +36,11 @@ def utcnow() -> datetime:
 class Documentation(SQLModel, table=True):
     __tablename__ = "documentation"
 
+    __table_args__ = (Index("ix_documentation_base_url", "base_url"),)
+
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     url: str = Field(sa_column=Column(Text, unique=True, nullable=False))
+    base_url: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
     title: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
     last_synced: datetime | None = Field(default=None, sa_column=Column(DateTime(timezone=True), nullable=True))
     cron_schedule: str | None = Field(default=None, sa_column=Column(String(length=255), nullable=True))
