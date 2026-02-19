@@ -1,6 +1,6 @@
-# Documentation MCP Gateway 🚀
+# DocCompass 🚀
 
-Documentation MCP Gateway is a powerful, modular platform designed to **ingest, index, and serve** documentation for multiple frameworks. It leverages the **Model Context Protocol (MCP)** to provide intelligent, structured knowledge access for developers, teams, and AI agents.
+DocCompass is a powerful, modular platform designed to **ingest, index, and serve** documentation for multiple frameworks. It leverages the **Model Context Protocol (MCP)** to provide intelligent, structured knowledge access for developers, teams, and AI agents.
 
 Think of it as your "Personal Documentation Concierge"—automatically crawling complex documentation sites, parsing them into high-quality semantic sections, and making them instantly searchable via vector embeddings.
 

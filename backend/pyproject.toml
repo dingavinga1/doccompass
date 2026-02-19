@@ -1,7 +1,7 @@
 [project]
 name = "documentation-mcp-backend"
 version = "0.1.0"
-description = "Backend infrastructure for Documentation MCP Gateway"
+description = "Backend infrastructure for DocCompass"
 requires-python = ">=3.13"
 dependencies = [
   "alembic>=1.16.5",

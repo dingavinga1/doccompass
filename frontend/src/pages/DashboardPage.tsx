@@ -77,7 +77,7 @@ export function DashboardPage() {
   return (
     <div className="page-grid">
       <header className="page-header">
-        <h1>Documentation MCP Gateway</h1>
+        <h1>DocCompass</h1>
         <p>Ingest, browse, and serve documentation via MCP.</p>
       </header>
 
