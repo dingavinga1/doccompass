@@ -128,3 +128,10 @@ We use `pytest` for backend verification.
 cd backend
 uv run pytest
 ```
+
+## Implementation Roadmap/Todo List
+- [ ] Cronjobs for existing documentations, for periodic fetching and syncing.
+- [ ] Better user experience for the progress indicator. Currently, there's a weight assigned to each stage, which makes it difficult for the end user to predict the ETA.
+- [ ] Implement a tool to allow agents to get sections by URLs for easier backtracking based on links provided within certain sections.
+
+> For any suggestions, feel free to create Issues within the repository!
