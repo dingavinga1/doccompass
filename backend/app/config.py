@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     embedding_dimension: int = Field(default=1024, alias="EMBEDDING_DIMENSION")
     embedding_batch_size: int = Field(default=64, alias="EMBEDDING_BATCH_SIZE")
     embedding_max_retries: int = Field(default=3, alias="EMBEDDING_MAX_RETRIES")
+    embedding_token_limit: int = Field(default=8192, alias="EMBEDDING_TOKEN_LIMIT")
     aws_region: str = Field(default="us-east-1", alias="AWS_REGION")
     openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
 

@@ -202,8 +202,11 @@ async def test_embed_sections_truncation(mock_embedder_cls, mock_settings):
     mock_settings.embedding_batch_size = 1
     mock_settings.embedding_max_retries = 1
     mock_settings.embedding_dimension = 2
+    mock_settings.embedding_token_limit = 8192
 
-    # Create a text longer than the MAX_CHARS limit (28000)
+    # Expected max_chars = int(8192 * 3.5) - 2000 = 26672
+    expected_max_chars = 26672
+
     result_mock = MagicMock()
     result_mock.embeddings = [[0.1, 0.2]]
     mock_instance = MagicMock()
@@ -211,7 +214,7 @@ async def test_embed_sections_truncation(mock_embedder_cls, mock_settings):
     mock_embedder_cls.return_value = mock_instance
 
     long_text = "a" * 30000
-    expected_truncated = "a" * 28000
+    expected_truncated = "a" * expected_max_chars
 
     from app.services.embedding import embed_sections
 
@@ -221,5 +224,38 @@ async def test_embed_sections_truncation(mock_embedder_cls, mock_settings):
     mock_instance.embed_documents.assert_called_once()
     call_args = mock_instance.embed_documents.call_args[0][0]
     assert len(call_args) == 1
-    assert len(call_args[0]) == 28000
+    assert len(call_args[0]) == expected_max_chars
     assert call_args[0] == expected_truncated
+
+
+@patch("app.services.embedding.settings")
+@patch("app.services.embedding.Embedder")
+@pytest.mark.anyio
+async def test_embed_sections_truncation_custom_limit(mock_embedder_cls, mock_settings):
+    """Test truncation with a custom token limit (e.g. 4096 for smaller models)."""
+    mock_settings.embedding_model = "test-model"
+    mock_settings.embedding_batch_size = 1
+    mock_settings.embedding_max_retries = 1
+    mock_settings.embedding_dimension = 2
+    mock_settings.embedding_token_limit = 4096
+
+    # Expected max_chars = int(4096 * 3.5) - 2000 = 12336
+    expected_max_chars = 12336
+
+    result_mock = MagicMock()
+    result_mock.embeddings = [[0.1, 0.2]]
+    mock_instance = MagicMock()
+    mock_instance.embed_documents = AsyncMock(return_value=result_mock)
+    mock_embedder_cls.return_value = mock_instance
+
+    long_text = "a" * 15000
+
+    from app.services.embedding import embed_sections
+
+    await embed_sections([long_text])
+
+    mock_instance.embed_documents.assert_called_once()
+    call_args = mock_instance.embed_documents.call_args[0][0]
+    assert len(call_args) == 1
+    assert len(call_args[0]) == expected_max_chars
+

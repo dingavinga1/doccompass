@@ -71,6 +71,7 @@ The gateway is built with a modern, high-performance stack:
 | :--- | :--- | :--- |
 | `MCP_SERVER_TOKEN` | `super-secret-token` | Bearer token for MCP authentication |
 | `EMBEDDING_MODEL` | `bedrock:...` | Model for vectorization (Bedrock or OpenAI) |
+| `EMBEDDING_TOKEN_LIMIT` | `8192` | Max tokens your embedding model accepts |
 | `AWS_REGION` | `us-east-1` | AWS region for Bedrock (if used) |
 | `POSTGRES_CONNECTION_STRING` | `postgresql+psycopg://...` | DB connection string |
 
