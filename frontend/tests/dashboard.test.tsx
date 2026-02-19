@@ -45,7 +45,6 @@ describe("Dashboard", () => {
     await user.click(screen.getByRole("button", { name: "Start Ingestion" }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Job:/)).toBeInTheDocument();
       expect(screen.getByText(/CRAWLING/)).toBeInTheDocument();
     });
 
@@ -66,10 +65,10 @@ describe("Dashboard", () => {
     await user.click(screen.getByRole("button", { name: "Start Ingestion" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Stop Ingestion" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Stop" })).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole("button", { name: "Stop Ingestion" }));
+    await user.click(screen.getByRole("button", { name: "Stop" }));
 
     await waitFor(() => {
       expect(screen.getByText("Stop requested.")).toBeInTheDocument();

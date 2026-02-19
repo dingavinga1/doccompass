@@ -1,16 +1,14 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
-import { listDocumentations } from "../api/documentation";
-import { getIngestionStatus, startIngestion, stopIngestion } from "../api/ingestion";
-import type { IngestionStatus, StartIngestionRequest } from "../api/types";
+import { deleteDocumentation, listDocumentations } from "../api/documentation";
+import { startIngestion } from "../api/ingestion";
+import type { StartIngestionRequest } from "../api/types";
 import { DocumentationList } from "../components/DocumentationList";
 import { IngestionForm, type IngestionFormValues } from "../components/IngestionForm";
-import { JobStatusPanel } from "../components/JobStatusPanel";
+import { JobTracker, type TrackedJob } from "../components/JobTracker";
 import { ToastItem, ToastStack } from "../components/ToastStack";
-
-const ACTIVE_STATUSES = new Set<IngestionStatus>(["PENDING", "CRAWLING", "PARSING", "EMBEDDING", "INDEXING"]);
 
 function toRequestPayload(values: IngestionFormValues): StartIngestionRequest {
   return {
@@ -23,17 +21,17 @@ function toRequestPayload(values: IngestionFormValues): StartIngestionRequest {
 
 export function DashboardPage() {
   const queryClient = useQueryClient();
-  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [trackedJobs, setTrackedJobs] = useState<TrackedJob[]>([]);
   const [selectedDocumentationId, setSelectedDocumentationId] = useState<string | undefined>();
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
-  function addToast(message: string, tone: "success" | "error") {
+  const addToast = useCallback((message: string, tone: "success" | "error") => {
     const id = Date.now();
     setToasts((prev) => [...prev, { id, message, tone }]);
     window.setTimeout(() => {
       setToasts((prev) => prev.filter((item) => item.id !== id));
     }, 3000);
-  }
+  }, []);
 
   const docsQuery = useQuery({
     queryKey: ["documentations"],
@@ -41,9 +39,13 @@ export function DashboardPage() {
   });
 
   const startMutation = useMutation({
-    mutationFn: (payload: StartIngestionRequest) => startIngestion(payload),
-    onSuccess: (data) => {
-      setActiveJobId(data.job_id);
+    mutationFn: (payload: { request: StartIngestionRequest; url: string }) =>
+      startIngestion(payload.request),
+    onSuccess: (data, variables) => {
+      setTrackedJobs((prev) => [
+        { jobId: data.job_id, documentationId: data.documentation_id, url: variables.url },
+        ...prev
+      ]);
       setSelectedDocumentationId(data.documentation_id);
       addToast("Ingestion job started.", "success");
       void queryClient.invalidateQueries({ queryKey: ["documentations"] });
@@ -51,53 +53,41 @@ export function DashboardPage() {
     onError: () => addToast("Failed to start ingestion.", "error")
   });
 
-  const statusQuery = useQuery({
-    queryKey: ["ingestion-status", activeJobId],
-    queryFn: () => getIngestionStatus(activeJobId as string),
-    enabled: Boolean(activeJobId),
-    refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      return status && ACTIVE_STATUSES.has(status) ? 3000 : false;
-    }
-  });
-
-  const stopMutation = useMutation({
-    mutationFn: (jobId: string) => stopIngestion({ job_id: jobId }),
-    onSuccess: () => {
-      addToast("Stop requested.", "success");
-      void queryClient.invalidateQueries({ queryKey: ["ingestion-status", activeJobId] });
+  const deleteMutation = useMutation({
+    mutationFn: (docId: string) => deleteDocumentation(docId),
+    onSuccess: (_data, docId) => {
+      addToast("Documentation deleted.", "success");
+      if (selectedDocumentationId === docId) {
+        setSelectedDocumentationId(undefined);
+      }
+      void queryClient.invalidateQueries({ queryKey: ["documentations"] });
     },
-    onError: () => addToast("Failed to request stop.", "error")
+    onError: () => addToast("Failed to delete documentation.", "error")
   });
 
   const docs = useMemo(() => docsQuery.data?.items ?? [], [docsQuery.data]);
 
   async function handleSubmit(values: IngestionFormValues): Promise<void> {
-    await startMutation.mutateAsync(toRequestPayload(values));
+    await startMutation.mutateAsync({
+      request: toRequestPayload(values),
+      url: values.webUrl
+    });
   }
 
-  async function handleStop(): Promise<void> {
-    if (!activeJobId) {
-      return;
-    }
-    await stopMutation.mutateAsync(activeJobId);
+  function handleDelete(docId: string) {
+    deleteMutation.mutate(docId);
   }
 
   return (
     <div className="page-grid">
       <header className="page-header">
         <h1>Documentation MCP Gateway</h1>
-        <p>Run ingestion jobs and monitor status in real time.</p>
+        <p>Ingest, browse, and serve documentation via MCP.</p>
       </header>
 
       <div className="two-col">
         <IngestionForm onSubmit={handleSubmit} isSubmitting={startMutation.isPending} />
-        <JobStatusPanel
-          status={statusQuery.data ?? null}
-          isLoading={statusQuery.isLoading}
-          onStop={handleStop}
-          isStopping={stopMutation.isPending}
-        />
+        <JobTracker jobs={trackedJobs} onToast={addToast} />
       </div>
 
       <section className="panel">
@@ -107,18 +97,19 @@ export function DashboardPage() {
             Refresh
           </button>
         </div>
-        {docsQuery.isLoading ? <p>Loading documentations...</p> : null}
+        {docsQuery.isLoading ? <p className="empty-state">Loading documentations...</p> : null}
         {docsQuery.isError ? <p className="error">Could not load documentation list.</p> : null}
         {!docsQuery.isLoading && !docsQuery.isError ? (
           <DocumentationList
             items={docs}
             selectedId={selectedDocumentationId}
             onSelect={(id) => setSelectedDocumentationId(id)}
+            onDelete={handleDelete}
           />
         ) : null}
         {selectedDocumentationId ? (
           <Link to={`/explorer/${selectedDocumentationId}`} className="link-button">
-            Open Explorer
+            Open Explorer →
           </Link>
         ) : null}
       </section>

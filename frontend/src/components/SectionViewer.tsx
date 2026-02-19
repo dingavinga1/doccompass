@@ -7,18 +7,30 @@ interface SectionViewerProps {
 
 export function SectionViewer({ section, isLoading }: SectionViewerProps) {
   if (isLoading) {
-    return <p>Loading section content...</p>;
+    return <p className="empty-state">Loading section content...</p>;
   }
 
   if (!section) {
-    return <p>Select a section from the tree to view content.</p>;
+    return <p className="empty-state">Select a section from the tree to view content.</p>;
   }
 
   return (
     <article className="panel section-viewer">
       <h3>{section.title ?? section.path}</h3>
-      <p><strong>Path:</strong> {section.path}</p>
-      {section.url ? <p><strong>Source:</strong> {section.url}</p> : null}
+      <div className="section-viewer-meta">
+        <span><strong>Path:</strong> {section.path}</span>
+        {section.url ? (
+          <span>
+            <strong>Source:</strong>{" "}
+            <a href={section.url} target="_blank" rel="noopener noreferrer">
+              {section.url}
+            </a>
+          </span>
+        ) : null}
+        {section.token_count ? (
+          <span><strong>Tokens:</strong> {section.token_count}</span>
+        ) : null}
+      </div>
       {section.summary ? <p>{section.summary}</p> : null}
       <pre>{section.content ?? "No content available."}</pre>
     </article>

@@ -36,19 +36,20 @@ export function ExplorerPage() {
       <header className="page-header">
         <h1>Documentation Explorer</h1>
         <p>Browse section tree and view parsed content.</p>
-        <Link to="/" className="link-button">Back to Dashboard</Link>
+        <Link to="/" className="link-button">← Dashboard</Link>
       </header>
 
       <div className="explorer-grid">
         <section className="panel">
           <h2>Documentations</h2>
-          {docsQuery.isLoading ? <p>Loading documentations...</p> : null}
+          {docsQuery.isLoading ? <p className="empty-state">Loading...</p> : null}
           {docsQuery.isError ? <p className="error">Unable to load documentation list.</p> : null}
           {!docsQuery.isLoading && !docsQuery.isError ? (
             <DocumentationList
               items={docs}
               selectedId={documentationId}
               onSelect={(id) => {
+                setSelectedSectionPath(null);
                 navigate(`/explorer/${id}`);
               }}
             />
@@ -57,7 +58,7 @@ export function ExplorerPage() {
 
         <section className="panel">
           <h2>Section Tree</h2>
-          {treeQuery.isLoading ? <p>Loading tree...</p> : null}
+          {treeQuery.isLoading ? <p className="empty-state">Loading tree...</p> : null}
           {treeQuery.isError ? <p className="error">Unable to load tree.</p> : null}
           {!treeQuery.isLoading && !treeQuery.isError ? (
             <SectionTree
@@ -69,9 +70,8 @@ export function ExplorerPage() {
         </section>
 
         <section>
-          <h2>Section Content</h2>
-          {sectionQuery.isError ? <p className="error">Unable to load section content.</p> : null}
           <SectionViewer section={sectionQuery.data ?? null} isLoading={sectionQuery.isLoading} />
+          {sectionQuery.isError ? <p className="error">Unable to load section content.</p> : null}
         </section>
       </div>
     </div>

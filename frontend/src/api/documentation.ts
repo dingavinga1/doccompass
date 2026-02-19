@@ -17,3 +17,7 @@ export function getSectionContent(documentationId: string, sectionPath: string):
   const params = new URLSearchParams({ path: sectionPath });
   return apiRequest<SectionContentResponse>(`/documentation/${documentationId}/content?${params.toString()}`);
 }
+
+export function deleteDocumentation(documentationId: string): Promise<void> {
+  return apiRequest<void>(`/documentation/${documentationId}`, { method: "DELETE" });
+}

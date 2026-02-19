@@ -53,6 +53,9 @@ export const handlers = [
       stop_requested: true
     });
   }),
+  http.delete("/api/documentation/:documentationId", () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
   http.get("/api/documentation/doc-1/tree", () => {
     return HttpResponse.json({
       documentation_id: "doc-1",

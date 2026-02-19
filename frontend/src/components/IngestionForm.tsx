@@ -50,6 +50,7 @@ export function IngestionForm({ onSubmit, isSubmitting }: IngestionFormProps) {
   return (
     <form className="panel" onSubmit={handleSubmit} aria-label="Start ingestion form">
       <h2>Start Ingestion</h2>
+
       <label htmlFor="web-url">Web URL</label>
       <input
         id="web-url"
@@ -86,7 +87,7 @@ export function IngestionForm({ onSubmit, isSubmitting }: IngestionFormProps) {
       />
 
       {error ? <p className="error" role="alert">{error}</p> : null}
-      <button type="submit" disabled={isSubmitting}>
+      <button type="submit" className="btn-primary" disabled={isSubmitting}>
         {isSubmitting ? "Starting..." : "Start Ingestion"}
       </button>
     </form>
