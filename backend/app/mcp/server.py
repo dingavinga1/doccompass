@@ -24,7 +24,7 @@ logger = get_logger(__name__)
 
 READ_ONLY_OPERATION_IDS = {
     "list_documentations",
-    "list_documentation_sections",
+    "list_docs_sections",
     "get_section_content",
     "get_documentation_tree",
     "search_documentation",

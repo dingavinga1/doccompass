@@ -58,7 +58,7 @@ def list_documentations_endpoint(
     "/{documentation_id}",
     response_model=SectionListResponse,
     responses=ERROR_RESPONSES,
-    operation_id="list_documentation_sections",
+    operation_id="list_docs_sections",
 )
 def list_documentation_sections_endpoint(
     documentation_id: uuid.UUID,
