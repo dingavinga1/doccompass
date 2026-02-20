@@ -13,10 +13,20 @@ migrate:
 	docker compose run --rm migrations
 
 up:
-	docker compose up --build -d
+	if [ "$$USE_FRONTEND" = "true" ]; then \
+		COMPOSE_PROFILES=frontend docker compose up --build -d; \
+	else \
+		docker compose up --build -d; \
+	fi
 
 down:
 	docker compose down
 
 ps:
 	docker compose ps
+
+install-cli:
+	cd cli && uv tool install .
+
+test-cli:
+	cd cli && uv run pytest

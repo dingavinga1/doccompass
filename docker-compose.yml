@@ -80,6 +80,8 @@ services:
 
   frontend:
     build: ./frontend
+    profiles:
+      - frontend
     env_file:
       - .env
     ports:

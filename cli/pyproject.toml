@@ -1,0 +1,24 @@
+[project]
+name = "doccompass-cli"
+version = "0.1.4"
+description = "A CLI for the Documentation MCP Gateway"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "aiohttp>=3.13.3",
+    "httpx>=0.28.1",
+    "rich>=14.3.3",
+    "typer>=0.24.0",
+]
+
+[project.scripts]
+doccompass = "doccompass_cli.main:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
