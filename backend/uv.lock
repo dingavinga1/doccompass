@@ -710,7 +710,7 @@ requires-dist = [
     { name = "celery", extras = ["redis"], specifier = ">=5.5.3" },
     { name = "crawl4ai", specifier = ">=0.8.0,<0.9.0" },
     { name = "fastapi", specifier = ">=0.121.0" },
-    { name = "fastmcp", specifier = ">=2.14.0" },
+    { name = "fastmcp", specifier = "==2.14.5" },
     { name = "pgvector", specifier = ">=0.4.1" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.13" },
     { name = "pydantic-ai-slim", extras = ["bedrock"], specifier = ">=1.61.0" },
