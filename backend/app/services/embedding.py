@@ -44,7 +44,7 @@ async def embed_sections(
 
     # Derive a conservative character limit from the user-configured token limit.
     # Approximation: ~3.5 chars per token, minus a 2000-char safety padding.
-    CHARS_PER_TOKEN = 3.5
+    CHARS_PER_TOKEN = 3.0
     PADDING_CHARS = 2000
     max_chars = int(settings.embedding_token_limit * CHARS_PER_TOKEN) - PADDING_CHARS
 

@@ -204,8 +204,8 @@ async def test_embed_sections_truncation(mock_embedder_cls, mock_settings):
     mock_settings.embedding_dimension = 2
     mock_settings.embedding_token_limit = 8192
 
-    # Expected max_chars = int(8192 * 3.5) - 2000 = 26672
-    expected_max_chars = 26672
+    # Expected max_chars = int(8192 * 3.0) - 2000 = 22576
+    expected_max_chars = 22576
 
     result_mock = MagicMock()
     result_mock.embeddings = [[0.1, 0.2]]
@@ -239,8 +239,8 @@ async def test_embed_sections_truncation_custom_limit(mock_embedder_cls, mock_se
     mock_settings.embedding_dimension = 2
     mock_settings.embedding_token_limit = 4096
 
-    # Expected max_chars = int(4096 * 3.5) - 2000 = 12336
-    expected_max_chars = 12336
+    # Expected max_chars = int(4096 * 3.0) - 2000 = 10288
+    expected_max_chars = 10288
 
     result_mock = MagicMock()
     result_mock.embeddings = [[0.1, 0.2]]
