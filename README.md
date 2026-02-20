@@ -186,5 +186,6 @@ uv run pytest
 - [ ] Cronjobs for existing documentations, for periodic fetching and syncing.
 - [ ] Better user experience for the progress indicator. Currently, there's a weight assigned to each stage, which makes it difficult for the end user to predict the ETA.
 - [ ] Implement a tool to allow agents to get sections by URLs for easier backtracking based on links provided within certain sections.
+- [ ] Standalone CLI tool (synchronous) for low-resource environments.
 
 > For any suggestions, feel free to create Issues within the repository!
