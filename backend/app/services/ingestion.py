@@ -333,3 +333,5 @@ async def run_ingestion_pipeline(session: Session, job_id: uuid.UUID) -> None:
         _set_job_state(session, job, IngestionStatus.COMPLETED, progress_percent=100, error_message=None)
     except Exception as exc:
         _set_job_state(session, job, IngestionStatus.FAILED, error_message=str(exc))
+    except BaseException as exc:
+        _set_job_state(session, job, IngestionStatus.FAILED, error_message=str(exc))
