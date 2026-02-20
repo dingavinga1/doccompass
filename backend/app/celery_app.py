@@ -4,7 +4,7 @@ from .config import settings
 
 
 celery_app = Celery(
-    "docmcp",
+    "doccompass",
     broker=settings.redis_url,
     backend=settings.redis_url,
     include=["app.tasks"],

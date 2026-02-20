@@ -50,9 +50,9 @@ The gateway is built with a modern, high-performance stack:
    *Edit `.env` to configure your embedding provider (AWS Bedrock or OpenAI).*
 3. **Start the Stack**:
    ```bash
-   docker compose up --build -d
+   USE_FRONTEND=true make up
    ```
-   *This will start the Database, Redis, Migrations (one-shot), Backend, Celery Worker, and Frontend.*
+   *This will start the Database, Redis, Migrations (one-shot), Backend, Celery Worker, and Frontend. If you only want to run the backend and use the CLI, simply run `make up`.*
 
 ### Verify Services
 
@@ -101,6 +101,57 @@ Add the following to your MCP settings (e.g., `~/.../mcp_settings.json` or equiv
 
 ---
 
+## 💻 CLI Usage
+
+DocCompass includes a standalone asynchronous CLI powered by `Typer` that connects to the backend and exposes core functionality directly in your terminal.
+
+### Installation
+
+To install the CLI globally using `uv`:
+
+```bash
+make install-cli
+```
+*(Ensure your `~/.local/bin` is in your `$PATH` to use the `doccompass` command from anywhere).*
+
+### Configuration
+
+Set the backend URL (defaults to `http://localhost:8000`):
+
+```bash
+doccompass config --set-backend-url http://localhost:8000
+```
+
+### Key Commands
+
+- **Ingest Docs**: `doccompass ingestion run <url> [--max-depth 3]`
+- **List Jobs**: `doccompass ingestion list`
+- **Browse Docs**: `doccompass docs list`
+- **Tree View**: `doccompass docs tree <id>`
+- **Search Docs**: `doccompass docs search <id> "query"`
+- **Get Content**: `doccompass docs content <id> <path>`
+
+---
+
+## 🤖 Agent Skills
+
+DocCompass is designed to be agent-friendly. We provide a set of **Agent Skills** that allow AI coding assistants (like AntiGravity, Cursor, or VS Code Copilot) to intelligently interact with the gateway via the CLI.
+
+These skills provide structured instructions and logic for agents to:
+1. **Discover** available documentation sets.
+2. **Search** semantically within those sets.
+3. **Retrieve** specific markdown content for context.
+
+### Enabling Agent Skills
+Point your agent to the following skill definitions within this repository:
+
+- **[List Available Docs](.agent/skills/list_available_docs/SKILL.md)**: Guides the agent on how to find what documentation is currently indexed.
+- **[Search Documentation](.agent/skills/search_documentation/SKILL.md)**: Provides a step-by-step workflow for semantic search and content extraction.
+
+By using these skills, your AI assistant can act as an expert on any framework you've ingested into DocCompass.
+
+---
+
 ## 🖥️ Local Development
 
 If you prefer to run services outside of Docker for development:
@@ -131,7 +182,7 @@ uv run pytest
 ```
 
 ## Implementation Roadmap/Todo List
-- [ ] CLI tool for DocCompass
+- [x] CLI tool for DocCompass
 - [ ] Cronjobs for existing documentations, for periodic fetching and syncing.
 - [ ] Better user experience for the progress indicator. Currently, there's a weight assigned to each stage, which makes it difficult for the end user to predict the ETA.
 - [ ] Implement a tool to allow agents to get sections by URLs for easier backtracking based on links provided within certain sections.

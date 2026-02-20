@@ -59,7 +59,7 @@ POSTGRES_DB=docmcp
 ## Phase 0 — Project Structure
 
 ```
-docmcp/
+doccompass/
 ├─ backend/
 │  ├─ app/
 │  │  ├─ main.py
@@ -256,7 +256,17 @@ GET /documentation/:id/search  -- keyword fallback in Phase 4, semantic in embed
 
 ---
 
-## Phase 7 — Frontend Setup
+## Phase 8 — CLI Scaffold
+
+- Standalone CLI implemented using `Typer` in the `/cli` directory.
+- Maps to existing backend `/documentation` and `/documentation/ingestion` asynchronous interfaces via HTTP requests using `httpx`.
+- Configurable persistent `backend_url` stored in `~/.doccompass/config.json`.
+- Outputs CLI responses as nicely formatted terminal outputs via `rich`.
+- Toggle execution of Frontend container using `USE_FRONTEND=true make up` utilizing Docker Compose profiles.
+
+---
+
+## Phase 9 — Frontend Setup
 
 This phase delivers the operator dashboard (ingestion controls, status tracking, documentation browsing) and includes frontend runtime containerization needed to deploy the app.
 
